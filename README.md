@@ -2,7 +2,7 @@
 
 **Feel your music as living light.** Ether's Field turns any song into beat-synced, body-responsive visuals: sand that settles into cymatic patterns, flames that dance to the kick drum, ripples that roll outward on every beat, and sacred geometry that breathes with you. It's built by Ether for musicians, meditators and visual artists, and it runs in your browser or installs on your phone like an app.
 
-**Open it:** https://tonyparker1964.github.io/ethers-field/
+**Open it:** https://tonyparker1964.github.io/Ethers-field/
 
 ## What it does
 
