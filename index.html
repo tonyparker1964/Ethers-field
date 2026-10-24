@@ -177,7 +177,8 @@ select option{background:#16141e}
         <button data-plate="round" aria-pressed="false">Round plate</button>
       </div>
       <select id="cymFollow" aria-label="What changes the pattern">
-        <option value="beat2" selected>Change every 2 beats</option>
+        <option value="plate" selected>Real plate: the sound shapes it</option>
+        <option value="beat2">Change every 2 beats</option>
         <option value="beat1">Change every beat</option>
         <option value="beat4">Change every 4 beats</option>
         <option value="pitch">Follow pitch only</option>
@@ -513,6 +514,52 @@ let patList=[], tabCur=null, tabPrev=null, cCur=0, cPrev=0, cTarget=0, cHold=0, 
 const tabCache=new Map(), ghostCache=new Map();
 const cymRow=document.getElementById('cymRow'), cymInfo=document.getElementById('cymInfo');
 
+/* real plate: every vibration shape (mode) of the plate resonates at its own frequency.
+   The live spectrum excites each mode through a resonance curve, the modes add up, and sand
+   gathers wherever the combined vibration is quietest, just like sand on a driven metal plate. */
+const PQ=14;let physSum=null,physTab=null,physW=null,physBins=null,physKey='',physGhost=null,physGhostX=null,physGhostImg=null,physFrame=0,physSweep=0;
+function modeFreq(p){return CYM.plate==='square'?16*(p.n*p.n+p.m*p.m)*(p.s>0?1.035:1):3.9*p.k*p.k;}
+function physSetup(){
+  const key=CYM.plate+':'+patList.length+':'+(ctx?ctx.sampleRate:0);if(physKey===key&&physTab)return;physKey=key;
+  physTab=new Float32Array(TN*TN);physW=new Float32Array(patList.length);
+  patList.forEach(p=>p.f=modeFreq(p));
+  physBins=null;
+  if(ctx&&fbuf){const bw=ctx.sampleRate/2/fbuf.length;
+    physBins=patList.map(p=>{const d=Math.max(p.f/PQ,bw*1.5),out=[];
+      for(let i=Math.max(1,Math.floor((p.f-3*d)/bw));i<=Math.min(fbuf.length-1,Math.ceil((p.f+3*d)/bw));i++){const x=(i*bw-p.f)/(d/2);out.push([i,1/(1+x*x)]);}
+      return out;});}
+  if(!physGhost){physGhost=document.createElement('canvas');physGhost.width=physGhost.height=TN;physGhostX=physGhost.getContext('2d');physGhostImg=physGhostX.createImageData(TN,TN);}
+}
+function physUpdate(t){
+  physSetup();const K=patList.length,tgt=new Float32Array(K);let peak=0,peakK=0,tot=0;
+  if(ctx&&audible()&&physBins){
+    for(let k=0;k<K;k++){let e=0;for(const [i,w] of physBins[k]){const a=Math.pow(10,(fbuf[i]/255*70-100)/20);e+=a*a*w;}tgt[k]=e;tot+=e;if(e>peak){peak=e;peakK=k;}}
+  } else { // silence: sweep a gentle tone up and down the plate's resonances
+    physSweep+=.0022;const idx=(Math.sin(physSweep*.35)*.5+.5)*(K-1);
+    for(let k=0;k<K;k++){tgt[k]=Math.exp(-(k-idx)*(k-idx)/.35);tot+=tgt[k];if(tgt[k]>peak){peak=tgt[k];peakK=k;}}
+  }
+  if(peak>1e-9&&tot>1e-8){for(let k=0;k<K;k++){const v=Math.pow(tgt[k]/peak,1.6);physW[k]+=((v>.12?v:0)-physW[k])*.18;}}
+  // add up the strongest modes' vibration energy, then take its square root as the local amplitude
+  const order=[...physW.keys()].filter(k=>physW[k]>.05).sort((a,b)=>physW[b]-physW[a]).slice(0,5);
+  if(!order.length)order.push(peakK);
+  // shapes sharing one frequency vibrate together as a single wave (add their motion);
+  // shapes at different frequencies only add their energy over time
+  const groups=new Map();for(const k of order){const p=patList[k],key=CYM.plate==='square'?p.n+','+p.m:'r'+k;(groups.get(key)||groups.set(key,[]).get(key)).push(k);}
+  const T=physTab;T.fill(0);const S=physSum||(physSum=new Float32Array(TN*TN));
+  for(const ks of groups.values()){
+    if(ks.length===1){const F=fieldTable(ks[0]),w=physW[ks[0]]||.05;for(let i=0;i<T.length;i++){const v=F[i];T[i]+=w*v*v;}continue;}
+    S.fill(0);for(const k of ks){const F=fieldTable(k),a=Math.sqrt(physW[k]||.05);for(let i=0;i<S.length;i++)S[i]+=a*F[i];}
+    for(let i=0;i<T.length;i++)T[i]+=S[i]*S[i];}
+  let mx=1e-9;for(let i=0;i<T.length;i++)if(T[i]>mx)mx=T[i];
+  const inv=1/mx;for(let i=0;i<T.length;i++)T[i]=Math.sqrt(T[i]*inv);
+  tabCur=tabPrev=T;cMix=1;
+  if(++physFrame%3===0){const gc=RAMP.ghost[CYM.el],d=physGhostImg.data,round=CYM.plate==='round';
+    for(let j=0;j<TN;j++)for(let i=0;i<TN;i++){const k=j*TN+i;let v=Math.exp(-T[k]*14);
+      if(round){const dx=i/TM*2-1,dy=j/TM*2-1;if(dx*dx+dy*dy>.96)v=0;}
+      d[k*4]=gc[0]*255*v;d[k*4+1]=gc[1]*255*v;d[k*4+2]=gc[2]*255*v;d[k*4+3]=255;}
+    physGhostX.putImageData(physGhostImg,0,0);
+    const top=patList[order[0]];cymInfo.textContent=`Resonating at ${Math.round(top.f)} Hz · ${order.length} mode${order.length>1?'s':''} sounding`;}
+}
 function buildPatterns(){
   if(CYM.plate==='square'){
     const L=[];CMODES.forEach(([n,m])=>{L.push({n,m,s:-1});L.push({n,m,s:1});});
@@ -750,7 +797,9 @@ function drawCymatic(t,B){
   if(!patList.length){buildPatterns();cCur=cPrev=cTarget=0;cMix=1;tabCur=tabPrev=fieldTable(0);seedSand();waterSetup();updCymInfo();}
   const pm=peakMode(t),follow=cymFollow.value;
   const newBeat=BEAT.n!==cymBeatSeen;cymBeatSeen=BEAT.n;
-  if(follow==='pitch'){
+  if(follow==='plate'){
+    physUpdate(t);
+  } else if(follow==='pitch'){
     if(pm!==null&&pm!==cTarget){cTarget=pm;cHold=0;}
     cHold++;
     if(cTarget!==cCur&&cHold>14&&t-lastSwitch>1100){cPrev=cCur;cCur=cTarget;tabPrev=tabCur;tabCur=fieldTable(cCur);cMix=0;lastSwitch=t;cymBurst(t,.7);updCymInfo();}
@@ -773,8 +822,9 @@ function drawCymatic(t,B){
   if(el==='water'||ether)Lx.drawImage(wC,0,0,cR,cR);
   Lx.globalCompositeOperation='lighter';
   const gA={sand:.16,fire:.38+F.bass*.3,water:.06,air:.14,ether:.16}[el],gc=RAMP.ghost[el];
-  if(cMix<1){Lx.globalAlpha=gA*(1-cMix);Lx.drawImage(ghostCanvas(cPrev,gc),0,0,cR,cR);}
-  Lx.globalAlpha=gA*cMix;Lx.drawImage(ghostCanvas(cCur,gc),0,0,cR,cR);Lx.globalAlpha=1;
+  if(follow==='plate'&&physGhost){Lx.globalAlpha=gA;Lx.drawImage(physGhost,0,0,cR,cR);}
+  else if(cMix<1){Lx.globalAlpha=gA*(1-cMix);Lx.drawImage(ghostCanvas(cPrev,gc),0,0,cR,cR);}
+  if(follow!=='plate'){Lx.globalAlpha=gA*cMix;Lx.drawImage(ghostCanvas(cCur,gc),0,0,cR,cR);}Lx.globalAlpha=1;
   if(el==='air'||ether)Lx.drawImage(airC,0,0);
   if(el==='sand'||el==='fire'||ether){tonemap(el==='sand'?.45:el==='fire'?.8:.68);pbX.putImageData(pbImg,0,0);Lx.drawImage(pbC,0,0);}
   const dt=performance.now()-t0;cymQ=Math.max(.45,Math.min(1,cymQ+(dt>22?-.03:dt<12?.01:0)));
