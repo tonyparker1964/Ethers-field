@@ -151,6 +151,7 @@ select option{background:#16141e}
         <button data-mode="journey" aria-pressed="false">Journey</button>
         <button data-mode="alpha" aria-pressed="false">Alpha-Omega</button>
         <button data-mode="genesis" aria-pressed="false">Genesis</button>
+        <button data-mode="zero" aria-pressed="false">Zero&#8217;s Journey</button>
       </div>
       <select id="pal" aria-label="Palette">
         <option value="ember">Ember</option>
@@ -227,6 +228,12 @@ select option{background:#16141e}
         <option value="0">Hold this image</option><option value="8">Next image every 8 beats</option>
         <option value="16" selected>Every 16 beats</option><option value="32">Every 32 beats</option>
       </select>
+    </div>
+    <div class="row" id="zjRow" hidden>
+      <button id="zjRestart">↺ Start from the seed</button>
+      <select id="zjLoop" aria-label="Loop or play once"><option value="loop" selected>Loop the cycle</option><option value="once">Play once</option></select>
+      <select id="zjNames" aria-label="Stage names"><option value="on" selected>Show stage names</option><option value="off">Hide stage names</option></select>
+      <span class="hint" id="zjInfo"></span>
     </div>
     <div class="row" id="gnRow" hidden>
       <button id="gnRestart">↺ Start from the beginning</button>
@@ -411,7 +418,7 @@ function routeFiles(list){
 }
 
 /* ---------- controls ---------- */
-document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;document.getElementById('cymRow').hidden=mode!=='cymatic';document.getElementById('solidRow').hidden=mode!=='solids';document.getElementById('imgRow').hidden=mode!=='images';document.getElementById('sigRow').hidden=mode!=='sigils';document.getElementById('fasRow').hidden=mode!=='fascia';document.getElementById('jrnRow').hidden=mode!=='journey';document.getElementById('aoRow').hidden=mode!=='alpha';document.getElementById('gnRow').hidden=mode!=='genesis';if(mode==='genesis')GN.start=null;document.getElementById('glc').hidden=mode!=='images'&&mode!=='journey';document.querySelectorAll('[data-mode]').forEach(x=>x.setAttribute('aria-pressed',x===b));g.fillStyle='#0b0a10';g.fillRect(0,0,W,H);seedParticles();});
+document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;document.getElementById('cymRow').hidden=mode!=='cymatic';document.getElementById('solidRow').hidden=mode!=='solids';document.getElementById('imgRow').hidden=mode!=='images';document.getElementById('sigRow').hidden=mode!=='sigils';document.getElementById('fasRow').hidden=mode!=='fascia';document.getElementById('jrnRow').hidden=mode!=='journey';document.getElementById('aoRow').hidden=mode!=='alpha';document.getElementById('gnRow').hidden=mode!=='genesis';document.getElementById('zjRow').hidden=mode!=='zero';if(mode==='zero'){ZJ.start=null;ZJ.cycle=0;ZJ.x=null;}if(mode==='genesis')GN.start=null;document.getElementById('glc').hidden=mode!=='images'&&mode!=='journey';document.querySelectorAll('[data-mode]').forEach(x=>x.setAttribute('aria-pressed',x===b));g.fillStyle='#0b0a10';g.fillRect(0,0,W,H);seedParticles();});
 document.getElementById('pal').onchange=e=>{pal=PAL[e.target.value];if(RAMP)buildRamps();GLYPHS=null;document.documentElement.style.setProperty('--accent',pal.acc);};
 document.getElementById('sens').oninput=e=>sens=+e.target.value;
 document.getElementById('bpm').oninput=e=>{bpm=+e.target.value;document.getElementById('bpmv').textContent=bpm;if(tone)tone.lfo.frequency.setTargetAtTime(bpm/60,ctx.currentTime,.2);};
@@ -1927,6 +1934,141 @@ function drawGenesis(t,B){
   gnInfo.textContent=tb<3.5?'The Big Bang':tt<GN_T.end?'A universe forms':(gnLoop.value==='loop'?'Returning to the beginning':'The end');
 }
 
+/* ---------- zero's journey: seed to fruit to seed, in one glowing cutaway of sky and soil ---------- */
+const ZJ={start:null,x:null,roots:[],specks:[],stars:[],bits:[],petals:[],fruit:null,cycle:0,lastT:0,burst:false,seedR:0};
+const zjLoop=document.getElementById('zjLoop'),zjNames=document.getElementById('zjNames'),zjInfo=document.getElementById('zjInfo');
+document.getElementById('zjRestart').onclick=()=>{ZJ.start=null;ZJ.cycle=0;ZJ.x=null;};
+const ZT={fall:3,sink:4.2,roots:12,stemUp:13.5,stem:20,branch:20.5,leafA:23,leafB:24.5,bud:26.5,bloom:30.5,petalFall:34.5,fruit:36.5,ripe:38.5,drop:39,decay:45,newSeed:46,fade:48.5,end:50};
+const zjE=s=>s<0?0:s>1?1:s*s*(3-2*s);
+function zjGround(){return H*(W>H?.6:.58);}
+function zjSetup(){
+  const R=Math.random,k=Math.min(W,H)/800,gy=zjGround();
+  if(ZJ.x===null)ZJ.x=W*(W>H?.42:.5);
+  ZJ.roots=[];ZJ.bits=[];ZJ.petals=[];ZJ.fruit=null;ZJ.burst=false;
+  const seedY=gy+H*.07;
+  // roots: a branching tree, each segment with its own moment to grow
+  const grow=(x,y,a,len,depth,t0)=>{
+    const x2=x+Math.cos(a)*len,y2=Math.min(H-8,y+Math.sin(a)*len),dur=len/(110*k);
+    ZJ.roots.push({x1:x,y1:y,x2,y2,t0,t1:t0+dur,w:Math.max(.6,(5-depth)*.8*k)});
+    if(depth<5){const n=depth<2?3:2;for(let i=0;i<n;i++)grow(x2,y2,a+(R()-.5)*1.1+(i-(n-1)/2)*.45,len*(.62+R()*.2),depth+1,t0+dur*(.55+R()*.4));}
+  };
+  grow(ZJ.x,seedY,Math.PI/2+(R()-.5)*.3,H*.075,0,ZT.sink+.3);
+  for(const r of ZJ.roots){r.t0=ZT.sink+.3+(r.t0-ZT.sink-.3)*.55;r.t1=ZT.sink+.3+(r.t1-ZT.sink-.3)*.55;}
+  if(!ZJ.specks.length){for(let i=0;i<260;i++)ZJ.specks.push({x:R(),y:R(),s:R(),p:R()*6.3});for(let i=0;i<260;i++)ZJ.stars.push({x:R(),y:R(),s:R(),p:R()*6.3});}
+  ZJ.side=R()<.5?-1:1;
+}
+function zjStem(u,sw){ // a gently curving stem from the seed up to the flower
+  const k=Math.min(W,H)/800,gy=zjGround(),x0=ZJ.x,y0=gy+H*.07,top=gy-H*(W>H?.38:.32);
+  const p0=[x0,y0],p1=[x0+22*k*ZJ.side+sw*.3,gy-H*.05],p2=[x0-16*k*ZJ.side+sw*.8,gy-H*.24],p3=[x0+6*k*ZJ.side+sw,top];
+  const v=1-u;return [v*v*v*p0[0]+3*v*v*u*p1[0]+3*v*u*u*p2[0]+u*u*u*p3[0],v*v*v*p0[1]+3*v*v*u*p1[1]+3*v*u*u*p2[1]+u*u*u*p3[1]];
+}
+function zjLeaf(x,y,ang,len,open,hue,glow){
+  if(open<=0)return;const l=len*open,w=l*.42;
+  g.save();g.translate(x,y);g.rotate(ang);
+  const gr=g.createLinearGradient(0,0,l,0);gr.addColorStop(0,`hsla(${hue},70%,${32+glow*10}%,.95)`);gr.addColorStop(1,`hsla(${hue+15},80%,${55+glow*15}%,.95)`);
+  g.fillStyle=gr;g.beginPath();g.moveTo(0,0);g.quadraticCurveTo(l*.45,-w,l,0);g.quadraticCurveTo(l*.45,w,0,0);g.fill();
+  g.strokeStyle=`hsla(${hue+20},90%,75%,.6)`;g.lineWidth=Math.max(.6,l*.02);g.beginPath();g.moveTo(0,0);g.lineTo(l*.92,0);g.stroke();
+  g.restore();
+}
+function drawZero(t,B){
+  if(ZJ.start===null){ZJ.start=t;zjSetup();}
+  let tt=(t-ZJ.start)/1000;
+  if(tt>ZT.end){if(zjLoop.value==='loop'){ // the new seed begins the next journey where it lies
+      ZJ.cycle++;ZJ.x=ZJ.fruit?ZJ.fruit.x:ZJ.x;ZJ.start=t-ZT.fall*1000;zjSetup();tt=ZT.fall;}else tt=ZT.end;}
+  const dt=Math.min(.05,(t-(ZJ.lastT||t))/1000);ZJ.lastT=t;
+  const k=Math.min(W,H)/800,gy=zjGround(),sw=Math.sin(t*.0011)*7*k*(1+F.mid*1.5),glow=BEAT.flash*.35+F.bass*.2;
+  const fadeOld=1-zjE((tt-ZT.decay-1)/(ZT.fade-ZT.decay-1));
+  g.setTransform(DPR,0,0,DPR,0,0);g.globalAlpha=1;g.globalCompositeOperation='source-over';
+  // sky: night turning to dawn as life grows, dimming again as the cycle closes
+  const day=zjE((tt-6)/18)*(1-zjE((tt-42)/7))*.85;
+  const sky=g.createLinearGradient(0,0,0,gy);sky.addColorStop(0,`hsl(${235-day*20},${45+day*10}%,${5+day*20}%)`);sky.addColorStop(1,`hsl(${25+day*10},${50+day*20}%,${9+day*30}%)`);
+  g.fillStyle=sky;g.fillRect(0,0,W,gy);
+  g.globalCompositeOperation='lighter';
+  for(const s of ZJ.stars){const a=(1-day*1.1)*(.25+.35*Math.sin(t*.002+s.p*5))*(.4+s.s);if(a>0){g.fillStyle=`rgba(235,235,255,${a})`;g.fillRect(s.x*W,s.y*gy*.95,1.2,1.2);}}
+  if(day>0){const sx=W*.82,sy=gy-H*.05-day*H*.25,r=Math.min(W,H)*.35,rg=g.createRadialGradient(sx,sy,0,sx,sy,r);
+    rg.addColorStop(0,`rgba(255,230,180,${day*.55})`);rg.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=rg;g.fillRect(sx-r,sy-r,r*2,r*2);}
+  g.globalCompositeOperation='source-over';
+  // soil in cross-section
+  const soil=g.createLinearGradient(0,gy,0,H);soil.addColorStop(0,'hsl(24,38%,14%)');soil.addColorStop(1,'hsl(18,30%,5%)');g.fillStyle=soil;g.fillRect(0,gy,W,H-gy);
+  for(const s of ZJ.specks){const y=gy+s.y*(H-gy);g.fillStyle=`hsla(${28+s.s*12},40%,${18+s.s*18}%,.7)`;g.fillRect(s.x*W,y,1+s.s*2.2,1+s.s*1.6);}
+  g.globalCompositeOperation='lighter';
+  const gl=g.createLinearGradient(0,gy-3,0,gy+3);gl.addColorStop(0,'rgba(0,0,0,0)');gl.addColorStop(.5,`hsla(40,90%,60%,${.25+day*.3})`);gl.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gl;g.fillRect(0,gy-3,W,6);
+  // the seed: falls, lands, sinks into the soil, then splits open as the roots begin
+  const seedY=gy+H*.07;
+  if(tt<ZT.roots+1&&fadeOld>0&&ZJ.cycle>=0){
+    let sx=ZJ.x,sy;
+    if(tt<ZT.fall&&ZJ.cycle===0){const u=tt/ZT.fall;sy=-20+(gy-6+20)*u*u;}else if(tt<ZT.sink){const u=zjE((tt-ZT.fall)/(ZT.sink-ZT.fall));sy=gy-6+(seedY-gy+6)*u;}else sy=seedY;
+    const open=zjE((tt-ZT.sink-.2)/1.5),a=1-zjE((tt-ZT.roots)/1);
+    for(const sd of (open>0?[-1,1]:[0])){g.save();g.translate(sx+sd*open*4*k,sy);g.rotate((tt<ZT.fall?tt*2:0)+sd*open*.4);
+      const rg=g.createRadialGradient(0,0,0,0,0,16*k);rg.addColorStop(0,`rgba(255,225,160,${.8*a})`);rg.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=rg;g.beginPath();g.arc(0,0,16*k,0,Math.PI*2);g.fill();
+      g.fillStyle=`rgba(200,150,80,${a})`;g.beginPath();g.ellipse(0,0,(open>0?4:7)*k,4.5*k,0,0,Math.PI*2);g.fill();g.restore();}
+  }
+  g.globalAlpha=fadeOld;
+  // roots spread through the soil
+  for(const r of ZJ.roots){const u=Math.max(0,Math.min(1,(tt-r.t0)/(r.t1-r.t0)));if(u<=0)continue;
+    g.strokeStyle=`hsla(42,85%,${62+glow*15}%,.75)`;g.lineWidth=r.w;g.lineCap='round';g.beginPath();g.moveTo(r.x1,r.y1);g.lineTo(r.x1+(r.x2-r.x1)*u,r.y1+(r.y2-r.y1)*u);g.stroke();
+    if(u<1){g.fillStyle='rgba(255,240,200,.9)';g.beginPath();g.arc(r.x1+(r.x2-r.x1)*u,r.y1+(r.y2-r.y1)*u,r.w*1.2,0,Math.PI*2);g.fill();}}
+  // the stem pushes up and breaks through the surface
+  const sU=.42*zjE((tt-ZT.roots+3)/(ZT.stemUp-ZT.roots+3))+.58*zjE((tt-ZT.stemUp)/(ZT.stem-ZT.stemUp));
+  if(sU>0){
+    if(!ZJ.burst&&sU>.4){ZJ.burst=true;const R=Math.random;for(let i=0;i<40;i++)ZJ.bits.push({x:ZJ.x+(R()-.5)*14*k,y:gy,vx:(R()-.5)*2.4*k,vy:-(1+R()*2.6)*k,l:1});}
+    const N=48;g.lineCap='round';
+    for(const pass of [0,1]){g.beginPath();for(let i=0;i<=N;i++){const u=sU*i/N,p=zjStem(u,sw*Math.min(1,u*1.4));i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]);}
+      g.strokeStyle=pass?`hsla(105,80%,${62+glow*12}%,.95)`:`hsla(110,70%,40%,.35)`;g.lineWidth=(pass?4.2:11)*k;g.stroke();}
+    const tip=zjStem(sU,sw*Math.min(1,sU*1.4));if(sU<1){const rg=g.createRadialGradient(tip[0],tip[1],0,tip[0],tip[1],10*k);rg.addColorStop(0,'rgba(220,255,200,.9)');rg.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=rg;g.beginPath();g.arc(tip[0],tip[1],10*k,0,Math.PI*2);g.fill();}
+  }
+  ZJ.bits=ZJ.bits.filter(b=>{b.vy+=.08*k;b.x+=b.vx;b.y+=b.vy;b.l-=dt*.7;if(b.y>gy){b.y=gy;b.vy*=-.3;b.vx*=.6;}
+    g.fillStyle=`hsla(30,45%,40%,${Math.max(0,b.l)})`;g.fillRect(b.x,b.y,2.2*k,2.2*k);return b.l>0;});
+  // a branch reaches out, leaves unfurl
+  const bU=zjE((tt-ZT.stem+.5)/(ZT.branch-ZT.stem+2.5)),bp=zjStem(.56,sw*.8),bAng=-Math.PI/2+ZJ.side*.95,bLen=H*.13;
+  let btip=bp;
+  if(bU>0){btip=[bp[0]+Math.cos(bAng+sw*.004)*bLen*bU,bp[1]+Math.sin(bAng+sw*.004)*bLen*bU];
+    g.strokeStyle=`hsla(100,70%,${55+glow*12}%,.95)`;g.lineWidth=3*k;g.beginPath();g.moveTo(bp[0],bp[1]);g.quadraticCurveTo((bp[0]+btip[0])/2,(bp[1]+btip[1])/2+12*k,btip[0],btip[1]);g.stroke();}
+  zjLeaf(btip[0],btip[1],bAng+.25*ZJ.side+Math.sin(t*.0015)*.12,H*.1,zjE((tt-ZT.branch)/(ZT.leafA-ZT.branch)),110,glow);
+  const lp=zjStem(.78,sw*.9);zjLeaf(lp[0],lp[1],-Math.PI/2-ZJ.side*1.05+Math.sin(t*.0013+1)*.12,H*.085,zjE((tt-ZT.leafA+.5)/(ZT.leafB-ZT.leafA+.5)),118,glow);
+  // the flower: bud, bloom, then petals let go
+  const top=zjStem(1,sw),bud=zjE((tt-ZT.leafB)/(ZT.bud-ZT.leafB)),bloom=zjE((tt-ZT.bud)/(ZT.bloom-ZT.bud));
+  const NP=7,pr=H*.055*(.35+.65*bloom);
+  if(bud>0&&tt<ZT.petalFall){
+    for(let i=0;i<NP;i++){const an=-Math.PI/2+i*Math.PI*2/NP+t*.00015,spread=bloom*(.9+BEAT.flash*.1);
+      g.save();g.translate(top[0],top[1]);g.rotate(an*spread);g.globalAlpha=fadeOld*bud;
+      const pg=g.createLinearGradient(0,0,0,-pr);pg.addColorStop(0,'hsla(330,80%,70%,.95)');pg.addColorStop(1,`hsla(${345+glow*20},95%,${82+glow*10}%,.95)`);
+      g.fillStyle=pg;g.beginPath();g.ellipse(0,-pr*.55,pr*.32*(.4+.6*bloom),pr*.6,0,0,Math.PI*2);g.fill();g.restore();}
+    g.globalAlpha=fadeOld;const cg=g.createRadialGradient(top[0],top[1],0,top[0],top[1],pr*.5);cg.addColorStop(0,'rgba(255,240,170,1)');cg.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=cg;g.beginPath();g.arc(top[0],top[1],pr*.5,0,Math.PI*2);g.fill();
+  }
+  if(tt>=ZT.bloom+1&&!ZJ.petals.length&&tt<ZT.petalFall+1){const R=Math.random;for(let i=0;i<NP;i++){const an=-Math.PI/2+i*Math.PI*2/NP;ZJ.petals.push({x:top[0]+Math.cos(an)*pr*.5,y:top[1]+Math.sin(an)*pr*.5,vx:(R()-.5)*.6,vy:.2+R()*.3,r:R()*6,vr:(R()-.5)*.05,l:1,t0:ZT.bloom+1.5+i*.35});}}
+  ZJ.petals=ZJ.petals.filter(p=>{if(tt<p.t0)return true;p.vy=Math.min(1.1,p.vy+.01);p.x+=p.vx+Math.sin(t*.003+p.r)*.6;p.y+=p.vy*k*1.4;p.r+=p.vr;if(p.y>gy-2){p.y=gy-2;p.l-=dt*.4;}
+    g.save();g.translate(p.x,p.y);g.rotate(p.r);g.globalAlpha=Math.max(0,p.l)*fadeOld;g.fillStyle='hsla(335,85%,75%,.9)';g.beginPath();g.ellipse(0,0,pr*.18,pr*.32,0,0,Math.PI*2);g.fill();g.restore();return p.l>0;});
+  g.globalAlpha=1;
+  // the fruit swells, ripens, falls and returns to the earth, leaving a new seed
+  const fg=zjE((tt-ZT.petalFall+2)/(ZT.fruit-ZT.petalFall+2)),ripe=zjE((tt-ZT.fruit)/(ZT.ripe-ZT.fruit)),FR=H*.04*fg;
+  if(fg>0&&!ZJ.fruit){
+    if(tt>=ZT.drop)ZJ.fruit={x:top[0],y:top[1]+FR*.9,vy:0,vx:ZJ.side*.6*k,rest:false};
+    else{const fx=top[0],fy=top[1]+FR*.9;g.strokeStyle='hsla(100,60%,45%,.9)';g.lineWidth=2*k;g.beginPath();g.moveTo(top[0],top[1]);g.lineTo(fx,fy-FR);g.stroke();zjFruit(fx,fy,FR,ripe,1,glow);}
+  }
+  if(ZJ.fruit){const f=ZJ.fruit,FRf=H*.04;
+    if(!f.rest){f.vy+=.35*k;f.x+=f.vx;f.y+=f.vy;if(f.y>gy-FRf){f.y=gy-FRf;f.vy*=-.32;f.vx*=.7;if(Math.abs(f.vy)<1.2*k){f.rest=true;}}}
+    const decay=zjE((tt-ZT.decay+2.5)/2.5);zjFruit(f.x,f.y+decay*FRf*.6,FRf*(1-decay*.7),1,1-decay,glow);
+    const ns=zjE((tt-ZT.decay+.5)/(ZT.newSeed-ZT.decay+.5));
+    if(ns>0){const sx=f.x,sy=gy-4*k,rg=g.createRadialGradient(sx,sy,0,sx,sy,26*k*ns);rg.addColorStop(0,`rgba(255,235,170,${ns})`);rg.addColorStop(1,'rgba(0,0,0,0)');
+      g.globalCompositeOperation='lighter';g.fillStyle=rg;g.beginPath();g.arc(sx,sy,26*k*ns,0,Math.PI*2);g.fill();g.globalCompositeOperation='source-over';
+      g.fillStyle=`rgba(210,160,90,${ns})`;g.beginPath();g.ellipse(sx,sy,7*k*ns,4.5*k*ns,0,0,Math.PI*2);g.fill();}}
+  g.globalCompositeOperation='source-over';g.globalAlpha=1;
+  // stage names
+  const stage=tt<ZT.sink?'The Seed':tt<ZT.stemUp?'Roots':tt<ZT.stem?'The Stem Rises':tt<ZT.leafA?'A Branch':tt<ZT.bud?'A Leaf':tt<ZT.petalFall?'The Flower':tt<ZT.drop+.5?'The Fruit':tt<ZT.decay?'Return to the Earth':'A New Seed';
+  zjInfo.textContent=`${stage}${ZJ.cycle?` · journey ${ZJ.cycle+1}`:''}`;
+  if(zjNames.value==='on'){g.textAlign='center';g.fillStyle='rgba(255,240,215,.45)';g.font=`600 ${Math.round(10*Math.max(1,k))}px "IBM Plex Mono",monospace`;g.fillText("ZERO'S JOURNEY".split('').join(String.fromCharCode(8202)),W/2,gy*.16+14);
+    g.fillStyle='rgba(255,240,215,.9)';g.font=`700 ${Math.round(Math.min(34,22*Math.max(1,k)))}px ${AO_FONT}`;g.fillText(stage,W/2,gy*.16+48);g.textAlign='start';}
+}
+function zjFruit(x,y,r,ripe,a,glow){
+  if(r<=.5||a<=0)return;
+  const hue=110-ripe*95,rg=g.createRadialGradient(x-r*.35,y-r*.35,r*.1,x,y,r);
+  rg.addColorStop(0,`hsla(${hue+20},90%,${72+glow*10}%,${a})`);rg.addColorStop(1,`hsla(${hue},85%,${36+ripe*8}%,${a})`);
+  g.fillStyle=rg;g.beginPath();g.arc(x,y,r,0,Math.PI*2);g.fill();
+  g.globalCompositeOperation='lighter';const hg=g.createRadialGradient(x,y,r*.6,x,y,r*1.8);hg.addColorStop(0,`hsla(${hue+10},100%,60%,${.25*a})`);hg.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle=hg;g.beginPath();g.arc(x,y,r*1.8,0,Math.PI*2);g.fill();g.globalCompositeOperation='source-over';
+}
+
 /* ---------- loop ---------- */
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 let frameErrs=0;
@@ -1935,8 +2077,8 @@ function frame(t){
   sense(t);
   const B=breathPhase(t);
   if(guide){const lbl=B.p<.5?'inhale':'exhale'; if(lbl!==lastLabel){breathEl.textContent=lbl;lastLabel=lbl;} breathEl.style.letterSpacing=(.2+B.v*.35)+'em';}
-  if(mode==='breath') drawBreath(t,B); else if(mode==='fascia') drawFascia(t,B); else if(mode==='cymatic') drawCymatic(t,B); else if(mode==='sigils') drawSigils(t,B); else if(mode==='solids') drawSolids(t,B); else if(mode==='images') drawImages(t,B); else if(mode==='journey') drawJourney(t,B); else if(mode==='alpha') drawAlpha(t,B); else if(mode==='genesis') drawGenesis(t,B); else drawRipple(t,B);
-  if(mode==='sigils'||mode==='solids'||mode==='images'||mode==='journey'||mode==='alpha'||mode==='genesis')g.setTransform(DPR,0,0,DPR,0,0);
+  if(mode==='breath') drawBreath(t,B); else if(mode==='fascia') drawFascia(t,B); else if(mode==='cymatic') drawCymatic(t,B); else if(mode==='sigils') drawSigils(t,B); else if(mode==='solids') drawSolids(t,B); else if(mode==='images') drawImages(t,B); else if(mode==='journey') drawJourney(t,B); else if(mode==='alpha') drawAlpha(t,B); else if(mode==='genesis') drawGenesis(t,B); else if(mode==='zero') drawZero(t,B); else drawRipple(t,B);
+  if(mode==='sigils'||mode==='solids'||mode==='images'||mode==='journey'||mode==='alpha'||mode==='genesis'||mode==='zero')g.setTransform(DPR,0,0,DPR,0,0);
   if(REC.on)recFrame();
   }catch(err){ // keep the app alive and report the problem instead of freezing
     g.setTransform(DPR,0,0,DPR,0,0);g.globalAlpha=1;g.globalCompositeOperation='source-over';
