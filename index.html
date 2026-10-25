@@ -150,6 +150,7 @@ select option{background:#16141e}
         <button data-mode="images" aria-pressed="false">Images</button>
         <button data-mode="journey" aria-pressed="false">Journey</button>
         <button data-mode="alpha" aria-pressed="false">Alpha-Omega</button>
+        <button data-mode="genesis" aria-pressed="false">Genesis</button>
       </div>
       <select id="pal" aria-label="Palette">
         <option value="ember">Ember</option>
@@ -226,6 +227,11 @@ select option{background:#16141e}
         <option value="0">Hold this image</option><option value="8">Next image every 8 beats</option>
         <option value="16" selected>Every 16 beats</option><option value="32">Every 32 beats</option>
       </select>
+    </div>
+    <div class="row" id="gnRow" hidden>
+      <button id="gnRestart">↺ Start from the beginning</button>
+      <select id="gnLoop" aria-label="Loop or play once"><option value="loop" selected>Loop</option><option value="once">Play once</option></select>
+      <span class="hint" id="gnInfo"></span>
     </div>
     <div class="row" id="aoRow" hidden>
       <select id="aoView" aria-label="Alpha-Omega view">
@@ -405,7 +411,7 @@ function routeFiles(list){
 }
 
 /* ---------- controls ---------- */
-document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;document.getElementById('cymRow').hidden=mode!=='cymatic';document.getElementById('solidRow').hidden=mode!=='solids';document.getElementById('imgRow').hidden=mode!=='images';document.getElementById('sigRow').hidden=mode!=='sigils';document.getElementById('fasRow').hidden=mode!=='fascia';document.getElementById('jrnRow').hidden=mode!=='journey';document.getElementById('aoRow').hidden=mode!=='alpha';document.getElementById('glc').hidden=mode!=='images'&&mode!=='journey';document.querySelectorAll('[data-mode]').forEach(x=>x.setAttribute('aria-pressed',x===b));g.fillStyle='#0b0a10';g.fillRect(0,0,W,H);seedParticles();});
+document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;document.getElementById('cymRow').hidden=mode!=='cymatic';document.getElementById('solidRow').hidden=mode!=='solids';document.getElementById('imgRow').hidden=mode!=='images';document.getElementById('sigRow').hidden=mode!=='sigils';document.getElementById('fasRow').hidden=mode!=='fascia';document.getElementById('jrnRow').hidden=mode!=='journey';document.getElementById('aoRow').hidden=mode!=='alpha';document.getElementById('gnRow').hidden=mode!=='genesis';if(mode==='genesis')GN.start=null;document.getElementById('glc').hidden=mode!=='images'&&mode!=='journey';document.querySelectorAll('[data-mode]').forEach(x=>x.setAttribute('aria-pressed',x===b));g.fillStyle='#0b0a10';g.fillRect(0,0,W,H);seedParticles();});
 document.getElementById('pal').onchange=e=>{pal=PAL[e.target.value];if(RAMP)buildRamps();GLYPHS=null;document.documentElement.style.setProperty('--accent',pal.acc);};
 document.getElementById('sens').oninput=e=>sens=+e.target.value;
 document.getElementById('bpm').oninput=e=>{bpm=+e.target.value;document.getElementById('bpmv').textContent=bpm;if(tone)tone.lfo.frequency.setTargetAtTime(bpm/60,ctx.currentTime,.2);};
@@ -1791,6 +1797,136 @@ function drawAlpha(t,B){
   g.globalCompositeOperation='source-over';
 }
 
+/* ---------- genesis: from the first cell to the first light ---------- */
+// A luminous, stylized story in one continuous take: sperm cells swim through a warm, pulsing space to the
+// egg; one enters, the cell fuses and divides, then everything collapses to a point and bursts outward as a
+// Big Bang that cools into spinning galaxies.
+const GN={start:null,sperm:[],corona:[],blobs:[],stars:[],parts:null,gal:null,winner:-1,rings:[],flash:0,lastT:0,fade:0};
+const gnLoop=document.getElementById('gnLoop'),gnInfo=document.getElementById('gnInfo');
+document.getElementById('gnRestart').onclick=()=>{GN.start=null;};
+const GN_T={swim:18,enter:22,fuse:25,divide:27.5,collapse:29.5,bang:29.5,form:33,end:46,out:48};
+function gnSetup(){
+  const R=Math.random;GN.sperm=[];GN.winner=-1;GN.parts=null;GN.gal=null;GN.rings=[];GN.flash=0;
+  for(let i=0;i<70;i++){const side=R(),x=side<.6?-20-R()*W*.15:R()*W*.45,y=side<.6?H*(.05+R()*.9):(side<.8?-20:H+20);
+    GN.sperm.push({x,y,a:Math.atan2(H*.5-y,W*.6-x)+(R()-.5)*1.6,sp:.6+R()*.8,ph:R()*6.3,stuck:false,th:0,fade:1,size:.8+R()*.45,delay:R()*7,wob:R()*100});}
+  GN.corona=[];for(let i=0;i<150;i++)GN.corona.push({a:R()*Math.PI*2,r:1.18+R()*.32,s:.5+R(),p:R()*6.3});
+  GN.blobs=[];for(let i=0;i<14;i++)GN.blobs.push({x:R(),y:R(),r:.08+R()*.18,vx:(R()-.5)*.00012,vy:(R()-.5)*.0001,p:R()*6.3});
+  GN.stars=[];for(let i=0;i<320;i++)GN.stars.push({x:R(),y:R(),s:R(),p:R()*6.3});
+}
+function gnEgg(){return {x:W*(W>H?.6:.5),y:H*(W>H?.5:.45),R:Math.min(W,H)*.16};}
+const gnEase=s=>s<0?0:s>1?1:s*s*(3-2*s);
+function gnSperm(sp,k,alpha){ // a glowing head with a beating tail that trails behind it
+  const ux=Math.cos(sp.a),uy=Math.sin(sp.a),px=-uy,py=ux,s=k*sp.size;
+  g.strokeStyle=`rgba(225,235,255,${.55*alpha*sp.fade})`;g.lineCap='round';
+  let x=sp.x,y=sp.y;
+  for(let seg=0;seg<3;seg++){g.lineWidth=Math.max(.5,(2.2-seg*.7)*s);g.beginPath();g.moveTo(x,y);
+    for(let j=1;j<=6;j++){const n=seg*6+j,back=n*2.6*s,amp=Math.sin(sp.ph-n*.55)*Math.min(1,n/5)*3.2*s;
+      x=sp.x-ux*back+px*amp;y=sp.y-uy*back+py*amp;g.lineTo(x,y);}g.stroke();}
+  const hg=g.createRadialGradient(sp.x,sp.y,0,sp.x,sp.y,9*s);hg.addColorStop(0,`rgba(255,255,255,${.95*alpha*sp.fade})`);hg.addColorStop(.35,`rgba(200,225,255,${.5*alpha*sp.fade})`);hg.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle=hg;g.beginPath();g.arc(sp.x,sp.y,9*s,0,Math.PI*2);g.fill();
+  g.save();g.translate(sp.x,sp.y);g.rotate(sp.a);g.fillStyle=`rgba(245,250,255,${.9*alpha*sp.fade})`;g.beginPath();g.ellipse(1.2*s,0,4.2*s,2.7*s,0,0,Math.PI*2);g.fill();g.restore();
+}
+function drawGenesis(t,B){
+  if(GN.start===null){GN.start=t;gnSetup();}
+  let tt=(t-GN.start)/1000;
+  if(tt>GN_T.out){if(gnLoop.value==='loop'){GN.start=t;gnSetup();tt=0;}else tt=GN_T.end;}
+  const dt=Math.min(.05,(t-(GN.lastT||t))/1000);GN.lastT=t;
+  const E=gnEgg(),k=Math.min(W,H)/800,h=pal.tint?pal.h[0]:350;
+  g.setTransform(DPR,0,0,DPR,0,0);g.globalAlpha=1;
+  const preBang=tt<GN_T.bang;
+  if(preBang){
+    // womb: warm, deep and gently pulsing with the heartbeat of the music
+    const col=1-gnEase((tt-GN_T.divide)/(GN_T.collapse-GN_T.divide));
+    const pulse=.5+.5*Math.sin(tt*Math.PI*2*1.1),beat=BEAT.flash*.6+pulse*.25;
+    g.globalCompositeOperation='source-over';
+    const bg=g.createRadialGradient(E.x,E.y,0,E.x,E.y,Math.max(W,H)*.9);
+    bg.addColorStop(0,`hsla(${h+8},70%,${(16+beat*5)*col}%,1)`);bg.addColorStop(.55,`hsla(${h-6},75%,${8*col}%,1)`);bg.addColorStop(1,`hsla(${h-14},70%,${3*col}%,1)`);
+    g.fillStyle=bg;g.fillRect(0,0,W,H);
+    g.globalCompositeOperation='lighter';
+    for(const b of GN.blobs){b.x+=b.vx;b.y+=b.vy;if(b.x<-.2)b.x=1.2;if(b.x>1.2)b.x=-.2;if(b.y<-.2)b.y=1.2;if(b.y>1.2)b.y=-.2;
+      const r=b.r*Math.max(W,H),rg=g.createRadialGradient(b.x*W,b.y*H,0,b.x*W,b.y*H,r);
+      rg.addColorStop(0,`hsla(${h+15},80%,55%,${.05*col*(.7+.3*Math.sin(tt*.6+b.p))})`);rg.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=rg;g.fillRect(b.x*W-r,b.y*H-r,r*2,r*2);}
+    // collapse: everything draws in toward a single point
+    const cs=1-gnEase((tt-GN_T.divide)/(GN_T.collapse-GN_T.divide))*.985;
+    g.save();g.translate(E.x,E.y);g.scale(cs,cs);g.translate(-E.x,-E.y);
+    // the egg: corona of small cells, a translucent shell, a warm glowing body
+    const R=E.R*(1+.015*Math.sin(tt*2.2)+BEAT.flash*.01),enterGlow=gnEase((tt-GN_T.enter+1.5)/2);
+    for(const c of GN.corona){c.a+=.0006;const rr=R*c.r+Math.sin(tt*.8+c.p)*R*.02,x=E.x+Math.cos(c.a)*rr,y=E.y+Math.sin(c.a)*rr;
+      const rg=g.createRadialGradient(x,y,0,x,y,7*k*c.s);rg.addColorStop(0,`hsla(${h+30},90%,78%,.35)`);rg.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=rg;g.beginPath();g.arc(x,y,7*k*c.s,0,Math.PI*2);g.fill();}
+    const body=g.createRadialGradient(E.x-R*.25,E.y-R*.25,R*.1,E.x,E.y,R);
+    body.addColorStop(0,`hsla(${h+40},95%,${78+enterGlow*12}%,.95)`);body.addColorStop(.6,`hsla(${h+25},85%,${48+enterGlow*15}%,.75)`);body.addColorStop(1,`hsla(${h+10},80%,30%,.35)`);
+    g.fillStyle=body;g.beginPath();g.arc(E.x,E.y,R,0,Math.PI*2);g.fill();
+    g.strokeStyle=`hsla(${h+45},100%,88%,${.35+enterGlow*.4})`;g.lineWidth=R*.07;g.beginPath();g.arc(E.x,E.y,R*1.06,0,Math.PI*2);g.stroke();
+    // fusion: two small nuclei drift together and become one
+    const fz=gnEase((tt-GN_T.enter)/(GN_T.fuse-GN_T.enter)),dv=gnEase((tt-GN_T.fuse)/(GN_T.divide-GN_T.fuse));
+    if(dv<=0){const two=tt>=GN_T.swim+2.4,sep=two?R*.3*(1-fz):0;
+      for(const sx of (two&&fz<1?[-1,1]:[0])){const x=E.x+sx*sep+(two?0:R*.06),y=E.y+(two?0:R*.04),rg=g.createRadialGradient(x,y,0,x,y,R*.24);
+        rg.addColorStop(0,'rgba(255,250,235,.85)');rg.addColorStop(.5,'rgba(255,235,205,.3)');rg.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=rg;g.beginPath();g.arc(x,y,R*.24,0,Math.PI*2);g.fill();}}
+    else{ // the first divisions: one cell becomes two, then four
+      const n=dv<.5?2:4,sp=R*.42*(dv<.5?dv*2:1),rr=R*(n===2?.5:.38);
+      for(let i=0;i<n;i++){const an=(n===2?0:Math.PI/4)+i*Math.PI*2/n,x=E.x+Math.cos(an)*sp*(n===2?1:.75),y=E.y+Math.sin(an)*sp*(n===2?1:.75);
+        const rg=g.createRadialGradient(x-rr*.3,y-rr*.3,rr*.1,x,y,rr);rg.addColorStop(0,'rgba(255,248,230,.85)');rg.addColorStop(1,`hsla(${h+30},85%,60%,.25)`);
+        g.fillStyle=rg;g.beginPath();g.arc(x,y,rr,0,Math.PI*2);g.fill();}}
+    // the swim
+    for(let i=0;i<GN.sperm.length;i++){const s=GN.sperm[i];if(tt<s.delay)continue;
+      if(!s.stuck){const dx=E.x-s.x,dy=E.y-s.y,d=Math.hypot(dx,dy),want=Math.atan2(dy,dx);
+        let da=want-s.a;da=Math.atan2(Math.sin(da),Math.cos(da));
+        s.a+=da*(.008+.02*Math.min(1,tt/14))+n3(s.wob+tt*.25,s.y*.003,s.x*.003)*.09;
+        const v=(1.25+F.bass*.6)*s.sp*k*60*dt;s.x+=Math.cos(s.a)*v;s.y+=Math.sin(s.a)*v;s.ph+=dt*14*s.sp;
+        if(d<R*1.12&&tt>3){s.stuck=true;s.th=Math.atan2(s.y-E.y,s.x-E.x);if(GN.winner<0)GN.winner=i;}}
+      else{ // wriggling at the shell; the first to arrive goes in
+        s.ph+=dt*16;const inward=i===GN.winner?gnEase((tt-GN_T.swim-1)/2.5):0,rr=R*(1.08-inward*1.08);
+        s.x=E.x+Math.cos(s.th)*rr+Math.cos(s.th+1.57)*Math.sin(s.ph*.3)*1.2*k;s.y=E.y+Math.sin(s.th)*rr+Math.sin(s.th+1.57)*Math.sin(s.ph*.3)*1.2*k;s.a=s.th+Math.PI;
+        if(i===GN.winner&&inward>.98)s.fade=Math.max(0,s.fade-dt*1.5);}
+      if(tt>GN_T.swim+1&&i!==GN.winner)s.fade=Math.max(0,s.fade-dt*.35);
+      if(s.fade>0)gnSperm(s,k,1);}
+    // the shell lights up the moment it is entered
+    if(GN.winner>=0&&tt>GN_T.swim+2.4&&!GN.rings.length)GN.rings.push({r:R,a:.9});
+    GN.rings=GN.rings.filter(o=>{o.r+=R*.012;o.a*=.965;g.strokeStyle=`hsla(${h+45},100%,90%,${o.a})`;g.lineWidth=3*k;g.beginPath();g.arc(E.x,E.y,o.r,0,Math.PI*2);g.stroke();return o.a>.02;});
+    g.restore();
+    // the point of collapse burns brighter and brighter
+    const cp=gnEase((tt-GN_T.divide)/(GN_T.collapse-GN_T.divide));
+    if(cp>0){const rg=g.createRadialGradient(E.x,E.y,0,E.x,E.y,E.R*(1.4-cp));rg.addColorStop(0,`rgba(255,255,255,${cp})`);rg.addColorStop(.3,`hsla(${h+40},100%,80%,${cp*.6})`);rg.addColorStop(1,'rgba(0,0,0,0)');
+      g.fillStyle=rg;g.fillRect(0,0,W,H);}
+    g.globalCompositeOperation='source-over';
+    gnInfo.textContent=tt<GN_T.swim?'The journey':tt<GN_T.enter?'Arrival':tt<GN_T.fuse?'Conception':tt<GN_T.divide?'First divisions':'Collapse';
+    return;
+  }
+  // ---- the Big Bang ----
+  if(!GN.parts){
+    const N=Math.round(Math.min(3600,W*H/220)),R=Math.random;GN.parts=[];GN.flash=reduce?.5:1;
+    const nG=W>H?6:5;GN.gal=[];for(let i=0;i<nG;i++)GN.gal.push({x:W*(.15+R()*.7),y:H*(.15+R()*.7),r:Math.min(W,H)*(.08+R()*.1),tilt:.35+R()*.5,rot:R()*6.3,dir:R()<.5?-1:1,hue:[210,30,280,190,330,45][i%6]});
+    for(let i=0;i<N;i++){const a=R()*Math.PI*2,v=Math.pow(R(),.5)*Math.min(W,H)*.03*(.6+R()*.8);
+      GN.parts.push({x:E.x,y:E.y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,g:i%GN.gal.length,arm:R()<.5?0:1,rr:Math.pow(R(),.6),j:(R()-.5)*.5,heat:1,s:.6+R()*1.2});}
+    for(let k2=0;k2<4;k2++)GN.rings.push({r:10*k2,a:1-k2*.18,bang:true});
+  }
+  const tb=tt-GN_T.bang,form=gnEase((tt-GN_T.form)/6),fadeOut=gnEase((tt-GN_T.end)/(GN_T.out-GN_T.end));
+  g.globalCompositeOperation='source-over';g.fillStyle=`rgba(3,2,8,${tb<1?.35:.2})`;g.fillRect(0,0,W,H);
+  g.globalCompositeOperation='lighter';
+  for(const s of GN.stars){const a=gnEase(tb/4)*(.25+.35*Math.sin(t*.002+s.p*5))*(.5+s.s);if(a<=0)continue;g.fillStyle=`rgba(230,235,255,${a})`;g.fillRect(s.x*W,s.y*H,1.1,1.1);}
+  // nebulae bloom around the young galaxies
+  for(const G of GN.gal){G.rot+=.0025*G.dir*(1+F.mid);if(form>0){const r=G.r*2.2,rg=g.createRadialGradient(G.x,G.y,0,G.x,G.y,r);
+      rg.addColorStop(0,`hsla(${G.hue},80%,60%,${.12*form})`);rg.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=rg;g.fillRect(G.x-r,G.y-r,r*2,r*2);}}
+  const pull=.0015+form*.05;
+  for(const p of GN.parts){
+    p.vx*=.972;p.vy*=.972;p.x+=p.vx;p.y+=p.vy;p.heat=Math.max(0,p.heat-dt*.25);
+    if(form>0){const G=GN.gal[p.g],r=p.rr*G.r,th=p.arm*Math.PI+p.rr*3.6+G.rot+p.j,c=Math.cos(G.rot*.2),
+        tx=G.x+Math.cos(th)*r,ty=G.y+Math.sin(th)*r*G.tilt;
+      p.x+=(tx-p.x)*pull*form;p.y+=(ty-p.y)*pull*form;}
+    const heat=p.heat,hue=heat>.6?50-heat*20:GN.gal[p.g].hue,l=55+heat*40;
+    g.fillStyle=`hsla(${hue},${heat>.6?100:80}%,${l}%,${(.55+heat*.4)*(1-fadeOut)})`;g.fillRect(p.x,p.y,p.s*(1+heat),p.s*(1+heat));}
+  // galactic cores glow once they form
+  for(const G of GN.gal){if(form<=0)break;const r=G.r*.35,rg=g.createRadialGradient(G.x,G.y,0,G.x,G.y,r);
+    rg.addColorStop(0,`rgba(255,245,225,${.6*form*(1-fadeOut)})`);rg.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=rg;g.fillRect(G.x-r,G.y-r,r*2,r*2);}
+  // shockwaves and the first light
+  GN.rings=GN.rings.filter(o=>{if(!o.bang)return false;o.r+=Math.max(W,H)*.02;o.a*=.955;g.strokeStyle=`rgba(255,240,215,${o.a*.8})`;g.lineWidth=(2+o.a*10)*k;
+    g.beginPath();g.arc(E.x,E.y,o.r,0,Math.PI*2);g.stroke();return o.a>.02&&o.r<Math.max(W,H)*1.5;});
+  if(GN.flash>0){g.fillStyle=`rgba(255,250,240,${GN.flash})`;g.fillRect(0,0,W,H);GN.flash=Math.max(0,GN.flash-dt*1.4);}
+  if(fadeOut>0){g.globalCompositeOperation='source-over';g.fillStyle=`rgba(0,0,0,${fadeOut*.25})`;g.fillRect(0,0,W,H);}
+  g.globalCompositeOperation='source-over';
+  gnInfo.textContent=tb<3.5?'The Big Bang':tt<GN_T.end?'A universe forms':(gnLoop.value==='loop'?'Returning to the beginning':'The end');
+}
+
 /* ---------- loop ---------- */
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 let frameErrs=0;
@@ -1799,8 +1935,8 @@ function frame(t){
   sense(t);
   const B=breathPhase(t);
   if(guide){const lbl=B.p<.5?'inhale':'exhale'; if(lbl!==lastLabel){breathEl.textContent=lbl;lastLabel=lbl;} breathEl.style.letterSpacing=(.2+B.v*.35)+'em';}
-  if(mode==='breath') drawBreath(t,B); else if(mode==='fascia') drawFascia(t,B); else if(mode==='cymatic') drawCymatic(t,B); else if(mode==='sigils') drawSigils(t,B); else if(mode==='solids') drawSolids(t,B); else if(mode==='images') drawImages(t,B); else if(mode==='journey') drawJourney(t,B); else if(mode==='alpha') drawAlpha(t,B); else drawRipple(t,B);
-  if(mode==='sigils'||mode==='solids'||mode==='images'||mode==='journey'||mode==='alpha')g.setTransform(DPR,0,0,DPR,0,0);
+  if(mode==='breath') drawBreath(t,B); else if(mode==='fascia') drawFascia(t,B); else if(mode==='cymatic') drawCymatic(t,B); else if(mode==='sigils') drawSigils(t,B); else if(mode==='solids') drawSolids(t,B); else if(mode==='images') drawImages(t,B); else if(mode==='journey') drawJourney(t,B); else if(mode==='alpha') drawAlpha(t,B); else if(mode==='genesis') drawGenesis(t,B); else drawRipple(t,B);
+  if(mode==='sigils'||mode==='solids'||mode==='images'||mode==='journey'||mode==='alpha'||mode==='genesis')g.setTransform(DPR,0,0,DPR,0,0);
   if(REC.on)recFrame();
   }catch(err){ // keep the app alive and report the problem instead of freezing
     g.setTransform(DPR,0,0,DPR,0,0);g.globalAlpha=1;g.globalCompositeOperation='source-over';
