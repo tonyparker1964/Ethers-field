@@ -276,7 +276,7 @@ select option{background:#16141e}
   window.__efErr=show;
   window.addEventListener('error',function(e){var st=e.error&&e.error.stack?String(e.error.stack).split('\n').slice(0,3).join(' | '):'';
     show((e.message||'Error')+(e.lineno?' (line '+e.lineno+':'+e.colno+')':'')+(st?' — '+st:''));});
-  window.addEventListener('unhandledrejection',function(e){var r=e.reason;show('Promise: '+(r&&(r.message||r.name)||String(r)));});
+  window.addEventListener('unhandledrejection',function(e){var r=e.reason;if(r&&(r.name==='NotAllowedError'||r.name==='AbortError'))return;show('Promise: '+(r&&(r.message||r.name)||String(r)));});
 })();
 </script>
 <script>
@@ -337,7 +337,7 @@ async function play(){
   // phones only allow sound that starts inside the tap, so start the file before any waiting
   ensureCtx(); stopAll(); const t=tracks[cur];
   let started=null;
-  if(!t.sample){ if(audio.src!==t.url) audio.src=t.url; started=audio.play(); }
+  if(!t.sample){ if(audio.src!==t.url) audio.src=t.url; started=audio.play(); if(started&&started.catch) started.catch(()=>{}); }
   try{ if(ctx.state!=='running') await ctx.resume(); }catch(e){}
   if(t.sample) startSample();
   else { try{ await started; }catch(e){
