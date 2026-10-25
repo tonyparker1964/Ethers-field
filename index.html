@@ -266,7 +266,7 @@ select option{background:#16141e}
     <div class="row"><button class="play" id="recSave">Save video</button><button id="recDiscard">Discard</button></div>
   </div>
 </div>
-<div class="drop" id="drop" hidden>Drop sounds to feel them</div>
+<div class="drop" id="drop" hidden>Drop songs, images or videos</div>
 
 <div id="errBox" role="alert" hidden style="position:fixed;left:12px;right:12px;top:calc(72px + env(safe-area-inset-top,0px));z-index:50;background:#2a1216;color:#ffd9d9;border:1px solid #7a2a33;border-radius:10px;padding:10px 12px;font:12px/1.45 ui-monospace,Menlo,monospace;white-space:pre-wrap;max-height:40vh;overflow:auto"></div>
 <script>
@@ -378,7 +378,20 @@ document.getElementById('file').onchange=e=>{addFiles(e.target.files);e.target.v
 const drop=document.getElementById('drop');
 addEventListener('dragover',e=>{e.preventDefault();drop.hidden=false;});
 addEventListener('dragleave',e=>{if(!e.relatedTarget)drop.hidden=true;});
-addEventListener('drop',e=>{e.preventDefault();drop.hidden=true;addFiles(e.dataTransfer.files);});
+addEventListener('drop',e=>{e.preventDefault();drop.hidden=true;if(e.dataTransfer&&e.dataTransfer.files.length)routeFiles(e.dataTransfer.files);});
+/* dropped files go where they belong: songs to the track list, images and videos to Images mode,
+   and images dropped during a Journey become that journey's keyframes */
+function routeFiles(list){
+  const fs=[...list];
+  const isAud=f=>f.type.startsWith('audio')||/\.(mp3|wav|m4a|ogg|oga|opus|flac|aac|aif|aiff|caf)$/i.test(f.name);
+  const isImg=f=>f.type.startsWith('image')||/\.(png|jpe?g|webp|gif|heic|avif)$/i.test(f.name);
+  const isVid=f=>f.type.startsWith('video')||/\.(mp4|mov|m4v|webm)$/i.test(f.name);
+  const aud=fs.filter(isAud),img=fs.filter(f=>!isAud(f)&&isImg(f)),vid=fs.filter(f=>!isAud(f)&&!isImg(f)&&isVid(f));
+  if(aud.length)addFiles(aud);
+  if(mode==='journey'&&img.length){jUseFiles(img);if(vid.length)addArtFiles(vid,false);}
+  else if(img.length||vid.length)addArtFiles([...img,...vid],true);
+  if(!aud.length&&!img.length&&!vid.length)now.textContent='Drop songs (MP3, M4A, WAV), images (JPG, PNG) or videos (MP4, MOV).';
+}
 
 /* ---------- controls ---------- */
 document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;document.getElementById('cymRow').hidden=mode!=='cymatic';document.getElementById('solidRow').hidden=mode!=='solids';document.getElementById('imgRow').hidden=mode!=='images';document.getElementById('sigRow').hidden=mode!=='sigils';document.getElementById('fasRow').hidden=mode!=='fascia';document.getElementById('jrnRow').hidden=mode!=='journey';document.getElementById('glc').hidden=mode!=='images'&&mode!=='journey';document.querySelectorAll('[data-mode]').forEach(x=>x.setAttribute('aria-pressed',x===b));g.fillStyle='#0b0a10';g.fillRect(0,0,W,H);seedParticles();});
@@ -1347,13 +1360,15 @@ function artShow(i){
   if(ART[artCur].isVideo&&vidSoundOn&&ART[artCur].vid&&!ART[artCur].vsrc){ensureCtx();try{ART[artCur].vsrc=ctx.createMediaElementSource(ART[artCur].vid);ART[artCur].vsrc.connect(analyser);}catch(err){}}
 }
 imgMotion.onchange=e=>{ART[artCur].fx=+e.target.value;};
-document.getElementById('artFile').onchange=e=>{
+document.getElementById('artFile').onchange=e=>{const list=[...e.target.files];e.target.value='';addArtFiles(list,false);};
+function addArtFiles(list,openImages){
   const isVid=f=>f.type.startsWith('video')||/\.(mp4|mov|m4v|webm)$/i.test(f.name);
-  const fs=[...e.target.files].filter(f=>f.type.startsWith('image')||isVid(f)||/\.(png|jpe?g|webp|gif|heic|avif)$/i.test(f.name));e.target.value='';
+  const fs=list.filter(f=>f.type.startsWith('image')||isVid(f)||/\.(png|jpe?g|webp|gif|heic|avif)$/i.test(f.name));
   if(!fs.length){now.textContent='Those files are not images or videos. Add JPG, PNG, MP4 or MOV.';return;}
+  if(openImages&&mode!=='images')document.querySelector('[data-mode="images"]').click();
   const first=ART.length;fs.forEach(f=>{const v=isVid(f);const a={name:f.name.replace(/\.[^.]+$/,''),fx:v?8:7,isVideo:v,uploaded:true,c:[.5,.5,.5,.5],src:URL.createObjectURL(f)};ART.push(a);if(gl)loadArt(a);});
   renderThumbs();setTimeout(()=>artShow(first),150);
-};
+}
 
 /* never-repeating 1D noise for the camera */
 function h1(n){const s=Math.sin(n*127.1+311.7)*43758.5453;return s-Math.floor(s);}
@@ -1543,12 +1558,13 @@ function jState(tt){
 }
 document.getElementById('jrnRestart').onclick=()=>{jStart=null;jBuild();};
 jrnLoop.onchange=()=>jBuild();
-document.getElementById('jrnFile').onchange=e=>{
-  const fs=[...e.target.files].filter(f=>f.type.startsWith('image')||/\.(png|jpe?g|webp|heic|avif)$/i.test(f.name));e.target.value='';
+document.getElementById('jrnFile').onchange=e=>{const list=[...e.target.files];e.target.value='';jUseFiles(list);};
+function jUseFiles(list){
+  const fs=list.filter(f=>f.type.startsWith('image')||/\.(png|jpe?g|webp|heic|avif)$/i.test(f.name));
   if(!fs.length){jrnInfo.textContent='Choose JPG or PNG images, in the order you want to fly through them.';return;}
   JK=fs.map(f=>({name:f.name,src:URL.createObjectURL(f),path:[[.5,.5],[.52,.53],[.55,.53]],focus:[.52,.55]}));
   if(gl)JK.forEach(jLoad);jBuild();jStart=null;jrnReset.hidden=false;
-};
+}
 jrnReset.onclick=()=>{JK=JBUILT.slice();jBuild();jStart=null;jrnReset.hidden=true;};
 function drawJourney(t,B){
   if(!gl&&!glFail){glInit();}
