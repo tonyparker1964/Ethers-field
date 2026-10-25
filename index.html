@@ -54,6 +54,18 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:
 .handle button,.handle label{cursor:pointer}
 .handle button{padding:6px 10px;font-size:11px}
 .handle .ctl input[type=range]{width:80px}
+.snap{display:inline-flex;gap:0}.snap button{border-radius:0;margin-left:-1px}.snap button:first-child{border-radius:999px 0 0 999px;margin-left:0}.snap button:last-child{border-radius:0 999px 999px 0}
+.dock.side{top:0;bottom:0!important;left:0;right:auto;width:min(380px,92vw);padding:calc(10px + env(safe-area-inset-top,0px)) 0 calc(10px + env(safe-area-inset-bottom,0px)) max(10px,env(safe-area-inset-left,0px));align-items:stretch;justify-content:stretch}
+.dock.side.right{left:auto;right:0;padding-left:0;padding-right:max(10px,env(safe-area-inset-right,0px))}
+.dock.side .panel{width:100%;max-height:100%;overflow-y:auto;overscroll-behavior:contain;box-sizing:border-box}
+.dock.side #dockUp,.dock.side #dockDown{display:none}
+.dock.side .handle{cursor:grab}
+.dock.side.away{transform:translateX(calc(-100% - 24px))}
+.dock.side.right.away{transform:translateX(calc(100% + 24px))}
+.showTab.left{left:max(12px,env(safe-area-inset-left,0px));transform:none}.showTab.right{left:auto;right:max(12px,env(safe-area-inset-right,0px));transform:none}
+.top{transition:left .45s,right .45s}body:has(.dock.side:not(.right):not(.away)) .top{left:min(390px,92vw)}body:has(.dock.side.right:not(.away)) .top{right:min(390px,92vw)}
+.snapHint{position:fixed;pointer-events:none;z-index:4;border:2px dashed var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent);border-radius:18px;opacity:0;transition:opacity .2s;top:8px;bottom:8px;width:min(380px,92vw)}
+.snapHint.on{opacity:1}.snapHint.left{left:8px}.snapHint.right{right:8px}.snapHint.bottom{left:8px;right:8px;width:auto;top:auto;height:28vh}
 .showTab{position:fixed;left:50%;bottom:calc(12px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--surface);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);z-index:5}
 .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 button,.upload{font:500 12px var(--mono);color:var(--fg);background:transparent;border:1px solid var(--line);border-radius:999px;padding:8px 13px;cursor:pointer;letter-spacing:.04em;white-space:nowrap}
@@ -121,10 +133,11 @@ select option{background:#16141e}
 
 <div class="dock" id="dock">
   <div class="panel" id="panel">
-    <div class="handle" id="handle" title="Drag to move the controls up or down">
+    <div class="handle" id="handle" title="Drag up or down to move the controls; drag to the left or right edge to snap them into a side panel">
       <span class="grip" aria-hidden="true"></span>
       <button id="dockUp" aria-label="Move controls up">▲</button>
       <button id="dockDown" aria-label="Move controls down">▼</button>
+      <span class="snap" role="group" aria-label="Where the controls sit"><button data-side="left" title="Snap the controls to a left side panel" aria-label="Snap to left">◧ Left</button><button data-side="bottom" title="Dock the controls along the bottom" aria-label="Snap to bottom">▭</button><button data-side="right" title="Snap the controls to a right side panel" aria-label="Snap to right">Right ◨</button></span>
       <label class="ctl" for="dockFade">FADE<input id="dockFade" type="range" min="0.15" max="1" step="0.05" value="1"></label>
       <button id="autoFade" aria-pressed="true" title="Fade the controls while music plays and you are not using them">Auto-fade</button>
       <span class="spacer"></span>
@@ -152,7 +165,6 @@ select option{background:#16141e}
         <button data-mode="journey" aria-pressed="false">Journey</button>
         <button data-mode="alpha" aria-pressed="false">Alpha-Omega</button>
         <button data-mode="genesis" aria-pressed="false">Genesis</button>
-        <button data-mode="zero" aria-pressed="false">Zero&#8217;s Journey</button>
       </div>
       <select id="pal" aria-label="Palette">
         <option value="ember">Ember</option>
@@ -234,12 +246,6 @@ select option{background:#16141e}
         <option value="16" selected>Every 16 beats</option><option value="32">Every 32 beats</option>
       </select>
     </div>
-    <div class="row" id="zjRow" hidden>
-      <button id="zjRestart">↺ Start from the seed</button>
-      <select id="zjLoop" aria-label="Loop or play once"><option value="loop" selected>Loop the cycle</option><option value="once">Play once</option></select>
-      <select id="zjNames" aria-label="Stage names"><option value="on" selected>Show stage names</option><option value="off">Hide stage names</option></select>
-      <span class="hint" id="zjInfo"></span>
-    </div>
     <div class="row" id="gnRow" hidden>
       <button id="gnRestart">↺ Start from the beginning</button>
       <select id="gnLoop" aria-label="Loop or play once"><option value="loop" selected>Loop</option><option value="once">Play once</option></select>
@@ -286,6 +292,7 @@ select option{background:#16141e}
   </div>
 </div>
 <button class="showTab" id="showTab" hidden>▲ Controls</button>
+<div class="snapHint" id="snapHint" aria-hidden="true"></div>
 <button class="recPill" id="recPill" hidden aria-label="Stop recording"><span class="recDot"></span><span id="recTime">REC 0:00</span><span class="recStop">Stop</span></button>
 <div class="recDlg" id="recDlg" hidden role="dialog" aria-modal="true" aria-labelledby="recTitle">
   <div class="recCard">
@@ -423,7 +430,7 @@ function routeFiles(list){
 }
 
 /* ---------- controls ---------- */
-document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;document.getElementById('cymRow').hidden=mode!=='cymatic';document.getElementById('solidRow').hidden=mode!=='solids';document.getElementById('imgRow').hidden=mode!=='images';document.getElementById('sigRow').hidden=mode!=='sigils';document.getElementById('fasRow').hidden=mode!=='fascia';document.getElementById('jrnRow').hidden=mode!=='journey';document.getElementById('aoRow').hidden=mode!=='alpha';document.getElementById('gnRow').hidden=mode!=='genesis';document.getElementById('zjRow').hidden=mode!=='zero';if(mode==='zero'){ZR.start=null;ZR.cycle=0;ZR.X0=null;}if(mode==='genesis')GN.start=null;document.getElementById('glc').hidden=mode!=='images'&&mode!=='journey';document.querySelectorAll('[data-mode]').forEach(x=>x.setAttribute('aria-pressed',x===b));g.fillStyle='#0b0a10';g.fillRect(0,0,W,H);seedParticles();});
+document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;document.getElementById('cymRow').hidden=mode!=='cymatic';document.getElementById('solidRow').hidden=mode!=='solids';document.getElementById('imgRow').hidden=mode!=='images';document.getElementById('sigRow').hidden=mode!=='sigils';document.getElementById('fasRow').hidden=mode!=='fascia';document.getElementById('jrnRow').hidden=mode!=='journey';document.getElementById('aoRow').hidden=mode!=='alpha';document.getElementById('gnRow').hidden=mode!=='genesis';if(mode==='genesis')GN.start=null;document.getElementById('glc').hidden=mode!=='images'&&mode!=='journey';document.querySelectorAll('[data-mode]').forEach(x=>x.setAttribute('aria-pressed',x===b));g.fillStyle='#0b0a10';g.fillRect(0,0,W,H);seedParticles();});
 document.getElementById('pal').onchange=e=>{pal=PAL[e.target.value];if(RAMP)buildRamps();GLYPHS=null;document.documentElement.style.setProperty('--accent',pal.acc);};
 document.getElementById('sens').oninput=e=>sens=+e.target.value;
 document.getElementById('bpm').oninput=e=>{bpm=+e.target.value;document.getElementById('bpmv').textContent=bpm;if(tone)tone.lfo.frequency.setTargetAtTime(bpm/60,ctx.currentTime,.2);};
@@ -456,12 +463,12 @@ document.getElementById('full').onclick=()=>{const d=document.documentElement;(d
 /* control dock: drag or step it up and down, set how faded it is, auto-fade while playing, or hide it */
 const panel=document.getElementById('panel'),dock=document.getElementById('dock'),handle=document.getElementById('handle');
 const fadeEl=document.getElementById('dockFade'),autoBtn=document.getElementById('autoFade'),showTab=document.getElementById('showTab');
-const DK={y:0,fade:1,auto:true};
+const DK={y:0,fade:1,auto:true,side:'bottom'};
 try{Object.assign(DK,JSON.parse(localStorage.getItem('ef-dock')||'{}'));}catch(e){}
 let idleT,idle=false;
 function saveDock(){try{localStorage.setItem('ef-dock',JSON.stringify(DK));}catch(e){}}
 function maxY(){return Math.max(0,innerHeight-dock.offsetHeight-8);}
-function placeDock(){DK.y=Math.max(0,Math.min(maxY(),DK.y));dock.style.bottom=DK.y+'px';dock.style.setProperty('--dy',DK.y+'px');}
+function placeDock(){if(DK.side!=='bottom'){dock.style.bottom='';dock.style.setProperty('--dy','0px');return;}DK.y=Math.max(0,Math.min(maxY(),DK.y));dock.style.bottom=DK.y+'px';dock.style.setProperty('--dy',DK.y+'px');}
 function applyFade(){panel.style.opacity=(idle&&DK.auto&&playing)?Math.min(DK.fade,.12):DK.fade;}
 function wake(){idle=false;applyFade();clearTimeout(idleT);idleT=setTimeout(()=>{idle=true;applyFade();},4000);}
 fadeEl.value=DK.fade;autoBtn.setAttribute('aria-pressed',DK.auto);
@@ -469,14 +476,27 @@ fadeEl.oninput=e=>{DK.fade=+e.target.value;applyFade();saveDock();};
 autoBtn.onclick=()=>{DK.auto=!DK.auto;autoBtn.setAttribute('aria-pressed',DK.auto);applyFade();saveDock();};
 document.getElementById('dockUp').onclick=()=>{DK.y+=Math.max(60,innerHeight*.15);placeDock();saveDock();};
 document.getElementById('dockDown').onclick=()=>{DK.y-=Math.max(60,innerHeight*.15);placeDock();saveDock();};
+const snapHint=document.getElementById('snapHint'),sideBtns=[...document.querySelectorAll('[data-side]')];
+function applySide(){const sd=DK.side==='left'||DK.side==='right'?DK.side:'bottom';DK.side=sd;
+  dock.classList.toggle('side',sd!=='bottom');dock.classList.toggle('right',sd==='right');
+  showTab.classList.toggle('left',sd==='left');showTab.classList.toggle('right',sd==='right');
+  showTab.textContent=sd==='left'?'▶ Controls':sd==='right'?'◀ Controls':'▲ Controls';
+  sideBtns.forEach(b=>b.setAttribute('aria-pressed',b.dataset.side===sd));placeDock();}
+sideBtns.forEach(b=>b.onclick=()=>{DK.side=b.dataset.side;applySide();saveDock();});
+applySide();
 document.getElementById('dockHide').onclick=()=>{dock.classList.add('away');showTab.hidden=false;};
 showTab.onclick=()=>{dock.classList.remove('away');showTab.hidden=true;wake();};
 handle.addEventListener('pointerdown',e=>{
   if(e.target.closest('button,input,label'))return;
-  const y0=e.clientY,start=DK.y;handle.setPointerCapture(e.pointerId);handle.classList.add('dragging');dock.style.transition='none';
-  const mv=ev=>{DK.y=start-(ev.clientY-y0);placeDock();};
+  const y0=e.clientY,start=DK.y;let target=DK.side;handle.setPointerCapture(e.pointerId);handle.classList.add('dragging');dock.style.transition='none';
+  // drag toward the left or right edge to snap into a side panel; drag a side panel down to the bottom to dock it there again
+  const mv=ev=>{const x=ev.clientX,y=ev.clientY;
+    target=x<innerWidth*.14?'left':x>innerWidth*.86?'right':(DK.side!=='bottom'&&y>innerHeight*.75)?'bottom':DK.side==='bottom'?'bottom':DK.side;
+    if(DK.side==='bottom'){DK.y=start-(y-y0);placeDock();}
+    const show=target!==DK.side;snapHint.className='snapHint '+target+(show?' on':'');};
   const up=()=>{handle.removeEventListener('pointermove',mv);handle.removeEventListener('pointerup',up);handle.removeEventListener('pointercancel',up);
-    handle.classList.remove('dragging');dock.style.transition='';saveDock();};
+    handle.classList.remove('dragging');dock.style.transition='';snapHint.className='snapHint';
+    if(target!==DK.side){DK.side=target;applySide();}saveDock();};
   handle.addEventListener('pointermove',mv);handle.addEventListener('pointerup',up);handle.addEventListener('pointercancel',up);
 });
 addEventListener('resize',placeDock);
@@ -1962,218 +1982,6 @@ function drawGenesis(t,B){
   gnInfo.textContent=tb<3.5?'The Big Bang':tt<GN_T.end?'A universe forms':(gnLoop.value==='loop'?'Returning to the beginning':'The end');
 }
 
-/* ---------- zero's journey: one continuous take from seed to tree to seed, naturally lit ---------- */
-const zjLoop=document.getElementById('zjLoop'),zjNames=document.getElementById('zjNames'),zjInfo=document.getElementById('zjInfo');
-document.getElementById('zjRestart').onclick=()=>{ZR.start=null;ZR.cycle=0;ZR.X0=null;};
-// A golden-hour forest clearing in cross-section. The camera starts close on a seed in the soil and pulls
-// back as it germinates, roots, rises, branches, leafs out, blossoms and bears fruit; an apple falls,
-// splits open, and the camera pushes in on its seed as the cycle begins again.
-const ZR={start:null,cycle:0,X0:null,lastT:0,data:null,petals:[],apple:null,Xn:null};window.__ZR=ZR;
-const ZR_T={crack:5,radicle:5.8,hook:7.2,coty:10,trunk:[10.5,24],tree:[10.5,33],leaves:[22,34],blossom:[31,35.5],petalFall:[37,42],fruit:[37.5,45],ripe:[41.5,46.5],drop:47,split:50.2,seedGlow:51.5,fadeTree:[51.5,56.5],end:58};
-const ZR_STAGES=[{t:0,n:'0',name:'Seed',sub:'Potential'},{t:5,n:'1',name:'Germination',sub:'New beginnings'},{t:12,n:'2',name:'Roots',sub:'Grounding & release'},{t:16.5,n:'3',name:'Stem',sub:'Emergence & becoming'},{t:21.5,n:'4',name:'Branches',sub:'Expansion'},{t:26.5,n:'5',name:'Leaves',sub:'Capacity'},{t:31.5,n:'6',name:'Flower',sub:'Unique expression'},{t:38,n:'7',name:'Fruit',sub:'Reward & renewal'},{t:49.5,n:'0',name:'New Seed',sub:'New beginnings'}];
-const zrE=s=>s<0?0:s>1?1:s*s*(3-2*s),zrC=(v,a,b)=>v<a?a:v>b?b:v;
-function zrRng(seed){return ()=>{seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
-let ZRS=null; // sprites
-function zrSprites(){
-  const mk=(w,h,f)=>{const c=document.createElement('canvas');c.width=w;c.height=h;f(c.getContext('2d'),w,h);return c;};
-  const leaf=(hue,sat,lit)=>mk(64,32,(x,w,h)=>{const gr=x.createLinearGradient(0,0,0,h);gr.addColorStop(0,`hsl(${hue+8},${sat}%,${lit+14}%)`);gr.addColorStop(.5,`hsl(${hue},${sat}%,${lit}%)`);gr.addColorStop(1,`hsl(${hue-6},${sat}%,${lit-12}%)`);
-    x.fillStyle=gr;x.beginPath();x.moveTo(1,h/2);x.bezierCurveTo(w*.3,0,w*.72,1,w-1,h/2);x.bezierCurveTo(w*.72,h-1,w*.3,h,1,h/2);x.fill();
-    x.strokeStyle=`hsla(${hue+20},60%,${lit+28}%,.55)`;x.lineWidth=1.2;x.beginPath();x.moveTo(2,h/2);x.lineTo(w-4,h/2);
-    for(let v=1;v<6;v++){const vx=w*v/6.6;x.moveTo(vx,h/2);x.lineTo(vx+7,h/2-h*.32*Math.sin(Math.PI*v/6.6));x.moveTo(vx,h/2);x.lineTo(vx+7,h/2+h*.32*Math.sin(Math.PI*v/6.6));}x.stroke();
-    x.globalCompositeOperation='source-atop';const rim=x.createLinearGradient(w,0,w*.4,h);rim.addColorStop(0,'rgba(255,220,140,.45)');rim.addColorStop(1,'rgba(255,220,140,0)');x.fillStyle=rim;x.fillRect(0,0,w,h);});
-  const blossom=mk(48,48,(x,w,h)=>{x.translate(w/2,h/2);for(let i=0;i<5;i++){x.save();x.rotate(i*Math.PI*2/5);const pg=x.createLinearGradient(0,0,0,-22);pg.addColorStop(0,'#f6d6dc');pg.addColorStop(1,'#fffaf6');
-      x.fillStyle=pg;x.beginPath();x.ellipse(0,-11,7.5,11,0,0,Math.PI*2);x.fill();x.restore();}
-    x.fillStyle='#f2c64a';for(let i=0;i<12;i++){const a=i/12*Math.PI*2;x.beginPath();x.arc(Math.cos(a)*4,Math.sin(a)*4,1.3,0,Math.PI*2);x.fill();}x.fillStyle='#c79a2a';x.beginPath();x.arc(0,0,2.4,0,Math.PI*2);x.fill();});
-  const petal=mk(16,22,(x,w,h)=>{x.fillStyle='#fbe9ec';x.beginPath();x.ellipse(w/2,h/2,w*.42,h*.46,0,0,Math.PI*2);x.fill();});
-  const apples=[];for(let i=0;i<7;i++){const r=i/6,hue=95-r*92;apples.push(mk(48,52,(x,w,h)=>{const cx=w/2,cy=h*.56,R=20;
-    const ag=x.createRadialGradient(cx-7,cy-8,2,cx,cy,R);ag.addColorStop(0,`hsl(${hue+18},75%,${62-r*8}%)`);ag.addColorStop(.7,`hsl(${hue},70%,${40-r*6}%)`);ag.addColorStop(1,`hsl(${hue-6},70%,${24}%)`);
-    x.fillStyle=ag;x.beginPath();x.moveTo(cx,cy-R*.78);x.bezierCurveTo(cx+R*1.15,cy-R*1.25,cx+R*1.2,cy+R*.95,cx,cy+R*.95);x.bezierCurveTo(cx-R*1.2,cy+R*.95,cx-R*1.15,cy-R*1.25,cx,cy-R*.78);x.fill();
-    x.fillStyle='rgba(255,250,235,.55)';x.beginPath();x.ellipse(cx-7,cy-7,4,6,-.5,0,Math.PI*2);x.fill();
-    x.strokeStyle='#4a3014';x.lineWidth=2;x.beginPath();x.moveTo(cx,cy-R*.75);x.quadraticCurveTo(cx+1,cy-R*1.1,cx+4,cy-R*1.3);x.stroke();}));}
-  return {leaves:[leaf(88,48,34),leaf(100,42,30),leaf(78,52,38),leaf(110,38,28),leaf(105,35,17)],blossom,petal,apples};
-}
-function zrBuild(){
-  const k=Math.min(W,H)/800,G=H*.64,R=zrRng(1234+ZR.cycle*977),X0=ZR.X0;
-  const D={G,k,roots:[],hairs:[],segs:[],leaves:[],blossoms:[],fruits:[],grass:[],pebbles:[],grains:[],trunks:[],bokeh:[],motes:[]};
-  // roots: a branching system spreading down through the soil
-  const rootRec=(x,y,a,len,gen,t0)=>{const x2=x+Math.cos(a)*len,y2=Math.min(H*1.3,y+Math.sin(a)*len),t1=t0+len/(26*k);
-    D.roots.push({x1:x,y1:y,x2,y2,gen,t0,t1,w:Math.max(.5,(6.5-gen)*1.05*k)});
-    if(gen>=3)for(let h=0;h<3;h++){const f=R(),side=R()<.5?-1:1;D.hairs.push({x:x+(x2-x)*f,y:y+(y2-y)*f,a:a+side*(1+R()*.6),l:(3+R()*5)*k,t:t0+(t1-t0)*f+.8});}
-    if(gen<6){const n=gen<2?3:2;for(let i=0;i<n;i++){let na=a+(i-(n-1)/2)*(.55+R()*.4)+(R()-.5)*.5;na=na*.8+Math.PI/2*.2;rootRec(x2,y2,na,len*(.66+R()*.12),gen+1,t0+(t1-t0)*(.55+R()*.4));}}};
-  const TS=Math.min(H,W*1.15);rootRec(X0,G+5*k,Math.PI/2+(R()-.5)*.2,TS*.06,0,ZR_T.radicle);
-  const rt=D.roots.reduce((m,r)=>Math.max(m,r.t1),0);for(const r of D.roots){const s=(26-ZR_T.radicle)/(rt-ZR_T.radicle);r.t0=ZR_T.radicle+(r.t0-ZR_T.radicle)*s;r.t1=ZR_T.radicle+(r.t1-ZR_T.radicle)*s;}
-  for(const hh of D.hairs){hh.t=ZR_T.radicle+(hh.t-ZR_T.radicle)*((26-ZR_T.radicle)/(rt-ZR_T.radicle));}
-  // the tree: trunk and branches, each with its own moment to grow, leaning a little toward the sun
-  const treeRec=(x,y,a,len,w,gen,t0)=>{const x2=x+Math.cos(a)*len,y2=y+Math.sin(a)*len,t1=t0+len/(22*k)*(1+gen*.15);
-    D.segs.push({x1:x,y1:y,x2,y2,w,gen,t0,t1,a});
-    if(gen<6){const n=gen<2?3:(R()<.4?3:2),sp=gen===0?.62:gen<3?.55:.5;
-      for(let i=0;i<n;i++){let na=a+(i-(n-1)/2)*sp+(R()-.5)*.3;na+=(-Math.PI/2-na)*(gen<3?.1:.02)+(gen>=3?.16*Math.cos(na):0);treeRec(x2,y2,na,len*(gen<2?.8:.74)*(.9+R()*.18),w*.66,gen+1,t0+(t1-t0)*(.55+R()*.4));}}};
-  treeRec(X0,G,-Math.PI/2+(R()-.5)*.08,TS*.115,Math.max(6,17*k),0,ZR_T.tree[0]);
-  const tt1=D.segs.reduce((m,s)=>Math.max(m,s.t1),0),ts=(ZR_T.tree[1]-ZR_T.tree[0])/(tt1-ZR_T.tree[0]);
-  for(const s of D.segs){s.t0=ZR_T.tree[0]+(s.t0-ZR_T.tree[0])*ts;s.t1=ZR_T.tree[0]+(s.t1-ZR_T.tree[0])*ts;}
-  // leaves along the younger branches; blossoms and fruit at the twig tips
-  for(const s of D.segs){if(s.gen<2)continue;const n=Math.round((s.gen-1.5)*2);
-    for(let i=0;i<n&&D.leaves.length<2600;i++){const f=.15+R()*.85,side=R()<.5?-1:1;
-      D.leaves.push({s,f,a:s.a+side*(.55+R()*.9),sz:(13+R()*8)*k*(1+(6-s.gen)*.05),dk:R()<.4,v:R()*4|0,t:Math.max(s.t1,ZR_T.leaves[0])+R()*(ZR_T.leaves[1]-ZR_T.leaves[0]-2),ph:R()*6.3});}}
-  const tips=D.segs.filter(s=>s.gen>=5);
-  for(const s of tips){if(R()<.55){const b={s,f:.8+R()*.2,t:ZR_T.blossom[0]+R()*(ZR_T.blossom[1]-ZR_T.blossom[0]-1),rot:R()*6.3,sz:(7.5+R()*3.5)*k,fall:ZR_T.petalFall[0]+R()*4};D.blossoms.push(b);
-      if(R()<.2&&D.fruits.length<22)D.fruits.push({s,f:b.f,t:ZR_T.fruit[0]+R()*1.5,sz:(12+R()*3)*k,ph:R()*6.3});}}
-  // the clearing: grass at the surface, stones and grains in the soil, trees and light beyond
-  for(let i=0;i<420;i++)D.grass.push({x:X0+(R()-.5)*W*2.4,h:(4+R()*13)*k,l:(R()-.5)*.5,ph:R()*6.3,c:R()});
-  for(let i=0;i<150;i++)D.pebbles.push({x:X0+(R()-.5)*W*2.4,y:G+8*k+R()*H*.55,rx:(2+R()*8)*k,ry:(1.5+R()*5)*k,a:R()*3,l:R()});
-  for(let i=0;i<900;i++)D.grains.push({x:X0+(R()-.5)*W*2.4,y:G+R()*H*.6,s:R()});
-  for(let i=0;i<46;i++)D.trunks.push({x:R(),w:.006+R()*.03,d:R(),hh:.35+R()*.6});
-  for(let i=0;i<46;i++)D.bokeh.push({x:R(),y:R()*.75,r:.01+R()*.04,p:R()*6.3});
-  for(let i=0;i<120;i++)D.motes.push({x:R(),y:R(),s:.3+R()*.9,p:R()*6.3});
-  // choose the apple that will fall
-  D.dropIdx=D.fruits.length?D.fruits.reduce((bi,f,i,arr)=>{const sb=arr[bi].s,s=f.s;return Math.abs(s.x2-X0)<Math.abs(sb.x2-X0)&&s.y2>sb.y2-H*.05?i:bi;},0):-1;
-  return D;
-}
-function zrCam(tt){
-  const D=ZR.data,G=D.G,X0=ZR.X0,k=D.k,Xn=ZR.Xn!=null?ZR.Xn:X0;
-  const K=[[0,4.2,X0,G+2*k],[5,3.2,X0,G-4*k],[11,2.4,X0,G-H*.04],[18,1.6,X0,G-H*.13],[30,1.04,X0,H*.47],[46,1,X0,H*.47],[48.5,1.2,(X0+Xn)/2,G-H*.12],[51.5,2.1,Xn,G-H*.02],[57.6,4.2,Xn,G+2*k]];
-  let i=0;while(i<K.length-1&&tt>K[i+1][0])i++;if(i>=K.length-1)return K[K.length-1].slice(1);
-  const a=K[i],b=K[i+1],e=zrE((tt-a[0])/(b[0]-a[0]));return [a[1]+(b[1]-a[1])*e,a[2]+(b[2]-a[2])*e,a[3]+(b[3]-a[3])*e];
-}
-function drawZero(t,B){
-  glc.hidden=true;
-  if(!ZRS)ZRS=zrSprites();
-  if(ZR.start===null){ZR.start=t;ZR.cycle=0;ZR.X0=W*.5;ZR.Xn=null;ZR.data=zrBuild();ZR.apple=null;}
-  let tt=(t-ZR.start)/1000;
-  if(tt>ZR_T.end){if(zjLoop.value==='loop'){ZR.cycle++;ZR.X0=ZR.Xn!=null?ZR.Xn:ZR.X0;ZR.Xn=null;ZR.start=t;ZR.data=zrBuild();ZR.apple=null;tt=0;}else tt=ZR_T.end;}
-  const dt=Math.min(.1,(t-(ZR.lastT||t))/1000);ZR.lastT=t;
-  const D=ZR.data,G=D.G,k=D.k,X0=ZR.X0,ts=t/1000;
-  const [Z,cx,cy]=zrCam(tt);
-  const toS=(x,y)=>[Z*(x-cx)+W/2,Z*(y-cy)+H/2];
-  const horizon=toS(0,G)[1];
-  g.setTransform(DPR,0,0,DPR,0,0);g.globalAlpha=1;g.globalCompositeOperation='source-over';
-  // golden-hour sky and a softly blurred forest beyond the clearing
-  const sky=g.createLinearGradient(0,0,0,Math.max(10,horizon));sky.addColorStop(0,'hsl(195,22%,14%)');sky.addColorStop(.6,'hsl(38,45%,38%)');sky.addColorStop(1,'hsl(42,70%,62%)');
-  g.fillStyle=sky;g.fillRect(0,0,W,Math.max(0,horizon)+2);
-  const sunX=W*.8,sunY=Math.min(horizon-H*.18,H*.3),par=1+(Z-1)*.12;
-  const sg=g.createRadialGradient(sunX,sunY,0,sunX,sunY,Math.max(W,H)*.55);sg.addColorStop(0,'rgba(255,240,200,.95)');sg.addColorStop(.08,'rgba(255,215,140,.6)');sg.addColorStop(1,'rgba(255,190,90,0)');
-  g.fillStyle=sg;g.fillRect(0,0,W,Math.max(0,horizon));
-  for(const tr of D.trunks){const x=W/2+(tr.x-.5)*W*1.3*par,w=tr.w*W*par,top=horizon-H*tr.hh*par,a=.25+tr.d*.45;
-    const tg=g.createLinearGradient(x-w,0,x+w,0);tg.addColorStop(0,'rgba(0,0,0,0)');tg.addColorStop(.5,`rgba(${30+tr.d*20},${24+tr.d*16},${14},${a})`);tg.addColorStop(1,'rgba(0,0,0,0)');
-    g.fillStyle=tg;g.fillRect(x-w,top,w*2,horizon-top);}
-  g.globalCompositeOperation='lighter';
-  for(const b of D.bokeh){const x=W/2+(b.x-.5)*W*1.2*par,y=b.y*horizon,r=b.r*Math.max(W,H)*par,a=.06+.05*Math.sin(ts*.5+b.p);
-    if(y>horizon)continue;const bg=g.createRadialGradient(x,y,0,x,y,r);bg.addColorStop(0,`rgba(255,220,150,${a})`);bg.addColorStop(.7,`rgba(255,210,130,${a*.6})`);bg.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=bg;g.fillRect(x-r,y-r,r*2,r*2);}
-  g.globalCompositeOperation='source-over';
-  // everything in the world from here on, through the camera
-  const a0=DPR*Z,ox=DPR*(W/2-cx*Z),oy=DPR*(H/2-cy*Z);
-  g.setTransform(a0,0,0,a0,ox,oy);
-  const sway=(x,y)=>{const hgt=Math.max(0,(G-y)/H);return Math.sin(ts*.85+y*.004)*7*k*Math.pow(hgt,1.4)*(1+F.mid*1.2)+Math.sin(ts*.31)*3*k*hgt;};
-  // soil in cross-section
-  const sl=X0-W*1.4,sw2=W*2.8;
-  const soil=g.createLinearGradient(0,G,0,G+H*.7);soil.addColorStop(0,'hsl(26,32%,17%)');soil.addColorStop(.12,'hsl(24,30%,12%)');soil.addColorStop(1,'hsl(20,26%,5%)');
-  g.fillStyle=soil;g.fillRect(sl,G,sw2,H*1.2);
-  for(const p of D.grains){g.fillStyle=`hsla(${26+p.s*14},${30+p.s*15}%,${14+p.s*20}%,.75)`;g.fillRect(p.x,p.y,.8+p.s*1.6,.8+p.s*1.2);}
-  for(const p of D.pebbles){const pg=g.createRadialGradient(p.x-p.rx*.3,p.y-p.ry*.3,0,p.x,p.y,p.rx);pg.addColorStop(0,`hsl(30,${12+p.l*10}%,${30+p.l*18}%)`);pg.addColorStop(1,`hsl(25,15%,${10+p.l*6}%)`);
-    g.fillStyle=pg;g.beginPath();g.ellipse(p.x,p.y,p.rx,p.ry,p.a,0,Math.PI*2);g.fill();}
-  const tf=1-zrE((tt-ZR_T.fadeTree[0])/(ZR_T.fadeTree[1]-ZR_T.fadeTree[0])); // the old tree fades as the camera returns to a seed
-  // roots, glowing faintly with light that travels down them
-  g.globalCompositeOperation='lighter';g.lineCap='round';
-  for(const r of D.roots){const u=zrC((tt-r.t0)/(r.t1-r.t0),0,1);if(u<=0)continue;const x2=r.x1+(r.x2-r.x1)*u,y2=r.y1+(r.y2-r.y1)*u;
-    const pulse=.55+.45*Math.sin(ts*2.2-r.y1*.03),thick=r.w*(.6+.4*zrC((tt-r.t0)/14,0,1));
-    g.strokeStyle=`hsla(40,70%,55%,${.18*tf})`;g.lineWidth=thick*2.6;g.beginPath();g.moveTo(r.x1,r.y1);g.lineTo(x2,y2);g.stroke();
-    g.strokeStyle=`hsla(44,80%,${68+pulse*14}%,${(.55+F.bass*.2)*tf})`;g.lineWidth=thick;g.stroke();}
-  g.strokeStyle=`hsla(44,70%,75%,${.35*tf})`;g.lineWidth=.6*k;g.beginPath();
-  for(const h of D.hairs){if(tt<h.t)continue;const u=zrC((tt-h.t)/1.2,0,1);g.moveTo(h.x,h.y);g.lineTo(h.x+Math.cos(h.a)*h.l*u,h.y+Math.sin(h.a)*h.l*u);}g.stroke();
-  g.globalCompositeOperation='source-over';
-  // the seed: resting in the soil, cracking, sending a root down and a shoot up
-  const sx=X0,sy=G+4*k,crack=zrE((tt-ZR_T.crack)/1.4),seedA=(1-zrE((tt-14)/4))*(tt<ZR_T.end-.01?1:1);
-  if(seedA>0&&tt<20){for(const side of (crack>0?[-1,1]:[0])){g.save();g.translate(sx+side*crack*2.2*k,sy+crack*.6*k);g.rotate(-.35+side*crack*.32);g.globalAlpha=seedA;
-      const sgd=g.createLinearGradient(-9*k,-6*k,9*k,6*k);sgd.addColorStop(0,'#c9a06a');sgd.addColorStop(.5,'#8d6136');sgd.addColorStop(1,'#4b2f17');g.fillStyle=sgd;
-      g.beginPath();if(side===0)g.ellipse(0,0,9*k,6*k,0,0,Math.PI*2);else g.ellipse(side*1.2*k,0,8*k,6*k,0,side<0?Math.PI*.5:-Math.PI*.5,side<0?Math.PI*1.5:Math.PI*.5);g.fill();
-      g.strokeStyle='rgba(60,35,15,.6)';g.lineWidth=.7*k;g.beginPath();g.ellipse(0,0,6.5*k,4*k,0,Math.PI*1.1,Math.PI*1.9);g.stroke();
-      g.fillStyle='rgba(255,240,210,.45)';g.beginPath();g.ellipse(-3*k,-2.6*k,2.6*k,1.2*k,-.3,0,Math.PI*2);g.fill();g.restore();}
-    g.globalAlpha=1;}
-  // the seedling: a pale hook pushes up through the soil, straightens and opens its first two leaves
-  const hook=zrE((tt-ZR_T.hook)/3),coty=zrE((tt-ZR_T.coty)/2),seedlingA=1-zrE((tt-22)/4);
-  if(hook>0&&seedlingA>0){const hh=H*.045*hook,bend=(1-coty)*.9;g.globalAlpha=seedlingA*tf;
-    const tipX=sx+Math.sin(bend*1.6)*5*k+sway(sx,sy-hh),tipY=sy-hh*(1-bend*.25);
-    g.strokeStyle='hsl(80,35%,62%)';g.lineWidth=2.4*k;g.lineCap='round';g.beginPath();g.moveTo(sx,sy);g.bezierCurveTo(sx-2*k,sy-hh*.5,sx+6*k*bend,sy-hh,tipX,tipY);g.stroke();
-    if(coty>0)for(const sd of [-1,1]){g.save();g.translate(tipX,tipY);g.rotate(-Math.PI/2+sd*(.3+1.0*coty)+Math.sin(ts*1.2)*.05);const cl=9*k*coty;
-      const cg=g.createLinearGradient(0,0,cl,0);cg.addColorStop(0,'hsl(88,45%,36%)');cg.addColorStop(1,'hsl(84,55%,52%)');g.fillStyle=cg;g.beginPath();g.ellipse(cl*.55,0,cl*.55,cl*.32,0,0,Math.PI*2);g.fill();g.restore();}
-    g.globalAlpha=1;}
-  // grass along the surface
-  g.lineCap='round';
-  for(const gr of D.grass){const bx=gr.x,top=sway(bx,G-gr.h*3)*.6+Math.sin(ts*1.3+gr.ph)*1.2*k;
-    g.strokeStyle=`hsl(${70+gr.c*25},${30+gr.c*15}%,${16+gr.c*14}%)`;g.lineWidth=1.1*k;g.beginPath();g.moveTo(bx,G+1);g.quadraticCurveTo(bx+gr.l*gr.h,G-gr.h*.6,bx+gr.l*gr.h*1.6+top,G-gr.h);g.stroke();}
-  // trunk and branches: green when young, woody and barked as they mature
-  g.globalAlpha=tf;
-  const tp=(s,u)=>{const x=s.x1+(s.x2-s.x1)*u,y=s.y1+(s.y2-s.y1)*u;return [x+sway(x,y),y];};
-  for(const s of D.segs){const u=zrC((tt-s.t0)/(s.t1-s.t0),0,1);if(u<=0)continue;
-    const mat=zrC((tt-s.t0)/9,0,1),w=s.w*(.28+.72*zrC((tt-s.t0)/(14-s.gen),0,1));
-    const p1=tp(s,0),p2=tp(s,u);
-    const base=`hsl(${95-mat*70},${40-mat*12}%,${36-mat*18}%)`,hl=`hsl(${85-mat*55},${35-mat*8}%,${52-mat*16}%)`;
-    g.strokeStyle=base;g.lineWidth=w;g.beginPath();g.moveTo(p1[0],p1[1]);g.lineTo(p2[0],p2[1]);g.stroke();
-    if(w>2*k){g.strokeStyle=hl;g.lineWidth=w*.32;g.beginPath();g.moveTo(p1[0]+w*.22,p1[1]);g.lineTo(p2[0]+w*.22,p2[1]);g.stroke();}}
-  // sprites drawn through the camera at a point, angle and size
-  const spr=(img,x,y,ang,scl,alpha)=>{if(alpha<=.01)return;const c=Math.cos(ang)*scl*a0,s=Math.sin(ang)*scl*a0;
-    g.globalAlpha=alpha*tf;g.setTransform(c,s,-s,c,ox+x*a0,oy+y*a0);g.drawImage(img,-img.width/2,-img.height/2);};
-  const hue=F.high*.05;
-  for(const pass of [1,0])for(const L of D.leaves){if(tt<L.t||(L.dk?1:0)!==pass)continue;const gro=zrE((tt-L.t)/1.6),p=tp(L.s,L.f),fl=Math.sin(ts*2.1+L.ph)*.12*(1+F.mid);
-    spr(ZRS.leaves[pass?4:L.v],p[0]+Math.cos(L.a)*L.sz*.5*gro,p[1]+Math.sin(L.a)*L.sz*.5*gro,L.a+fl,L.sz/64*gro,1);}
-  for(const b of D.blossoms){if(tt<b.t||tt>b.fall+.8)continue;const open=zrE((tt-b.t)/2),wilt=1-zrE((tt-b.fall)/.8),p=tp(b.s,b.f);
-    spr(ZRS.blossom,p[0],p[1],b.rot+Math.sin(ts+b.rot)*.1,b.sz/24*(.3+.7*open),open*wilt);}
-  // petals let go and drift down to the grass, then fade
-  if(tt>ZR_T.petalFall[0]&&tt<ZR_T.fadeTree[0])for(const b of D.blossoms){const u=tt-b.fall;if(u<=0)continue;
-    const p0x=b.s.x1+(b.s.x2-b.s.x1)*b.f,p0y=b.s.y1+(b.s.y2-b.s.y1)*b.f;
-    for(let q=0;q<2;q++){const vs=H*(.055+.03*q+.01*Math.sin(b.rot*7)),landT=(G-2-p0y)/vs,a=1-zrE((u-landT)/2.5);if(a<=0)continue;
-      const y=Math.min(G-2,p0y+vs*u),x=p0x+Math.sin(Math.min(u,landT)*1.7+b.rot+q)*9*k+(q-.5)*Math.min(u,landT)*7*k;
-      spr(ZRS.petal,x,y,b.rot+q*2+Math.min(u,landT)*(1.5+q),k*.55,a);}}
-  // fruit swells and ripens; one apple falls
-  for(let i=0;i<D.fruits.length;i++){const f=D.fruits[i];if(tt<f.t)continue;if(i===D.dropIdx&&ZR.apple)continue;
-    const gro=zrE((tt-f.t)/(ZR_T.fruit[1]-f.t)),ripe=zrE((tt-ZR_T.ripe[0])/(ZR_T.ripe[1]-ZR_T.ripe[0])),p=tp(f.s,f.f);
-    spr(ZRS.apples[Math.round(ripe*6)],p[0],p[1]+f.sz*.9*gro,Math.sin(ts*.9+f.ph)*.08,f.sz/20*(.15+.85*gro),1);}
-  if(tt>=ZR_T.drop&&D.dropIdx>=0&&!ZR.apple){const f=D.fruits[D.dropIdx],p=tp(f.s,f.f),dir=ZR.cycle%2?1:-1,y0=p[1]+f.sz*.9,gy=G-f.sz*.9,gv=2.2*H,T1=Math.sqrt(2*Math.max(1,gy-y0)/gv);
-    const xl=p[0]+dir*W*.025*T1,roll=dir*W*.07;ZR.apple={x0:p[0],y0,gy,gv,T1,dir,xl,roll,x:p[0],y:y0,sz:f.sz,rot:0};ZR.Xn=zrC(xl+roll,W*.3,W*.7);ZR.apple.roll=ZR.Xn-xl;}
-  if(ZR.apple){const ap=ZR.apple,ft=Math.max(0,tt-ZR_T.drop);
-    if(ft<ap.T1){ap.y=ap.y0+.5*ap.gv*ft*ft;ap.x=ap.x0+(ap.xl-ap.x0)*ft/ap.T1;}
-    else{const u=ft-ap.T1,v1=ap.gv*ap.T1*.28,bt=2*v1/ap.gv;ap.y=ap.gy-(u<bt?v1*u-.5*ap.gv*u*u:0);ap.x=ap.xl+ap.roll*(1-Math.exp(-u*1.6));}
-    ap.rot=(ap.x-ap.x0)/ap.sz;
-    const split=zrE((tt-ZR_T.split)/1.4),decay=zrE((tt-53.5)/3);
-    g.setTransform(a0,0,0,a0,ox,oy);
-    if(split<=0){spr(ZRS.apples[6],ap.x,ap.y,ap.rot,ap.sz/20,1/(tf||1)*tf>0?1:1);}
-    else{ // the apple opens: two halves part to show its seeds
-      g.globalAlpha=1-decay;const R0=ap.sz*1.05,cxp=ap.x,cyp=ap.y+R0*.1;
-      for(const sd of [-1,1]){g.save();g.translate(cxp+sd*split*R0*.55,cyp);g.rotate(sd*split*.25);
-        g.fillStyle='#8f1d16';g.beginPath();g.arc(0,0,R0,sd<0?Math.PI*.5:-Math.PI*.5,sd<0?Math.PI*1.5:Math.PI*.5);g.fill();
-        g.fillStyle='#f4e3c0';g.beginPath();g.ellipse(sd*R0*.08,0,R0*.82,R0*.88,0,sd<0?Math.PI*.5:-Math.PI*.5,sd<0?Math.PI*1.5:Math.PI*.5);g.fill();
-        g.fillStyle='rgba(200,160,100,.6)';g.beginPath();g.ellipse(sd*R0*.12,0,R0*.25,R0*.42,0,0,Math.PI*2);g.fill();
-        for(let q=0;q<2;q++){g.fillStyle='#4a2a12';g.beginPath();g.ellipse(sd*R0*.14,(q-.5)*R0*.35,R0*.09,R0*.15,sd*.3,0,Math.PI*2);g.fill();}
-        g.restore();}
-      g.globalAlpha=1;
-      // a single seed glows and comes to rest in the soil: the next journey begins here
-      const sg2=zrE((tt-ZR_T.seedGlow)/2.5),nx=ZR.Xn!=null?ZR.Xn:ap.x;
-      if(sg2>0){const seedX=cxp+(nx-cxp)*sg2,seedY=cyp+(G+4*k-cyp)*sg2;
-        g.globalCompositeOperation='lighter';const gg=g.createRadialGradient(seedX,seedY,0,seedX,seedY,20*k);gg.addColorStop(0,`rgba(255,225,160,${.7*(1-zrE((tt-56)/2))})`);gg.addColorStop(1,'rgba(0,0,0,0)');
-        g.fillStyle=gg;g.beginPath();g.arc(seedX,seedY,20*k,0,Math.PI*2);g.fill();g.globalCompositeOperation='source-over';
-        g.save();g.translate(seedX,seedY);g.rotate(-.35);const sgd=g.createLinearGradient(-9*k,-6*k,9*k,6*k);sgd.addColorStop(0,'#c9a06a');sgd.addColorStop(.5,'#8d6136');sgd.addColorStop(1,'#4b2f17');
-        g.fillStyle=sgd;g.beginPath();g.ellipse(0,0,9*k*(.6+.4*sg2),6*k*(.6+.4*sg2),0,0,Math.PI*2);g.fill();g.fillStyle='rgba(255,240,210,.45)';g.beginPath();g.ellipse(-3*k,-2.6*k,2.6*k,1.2*k,-.3,0,Math.PI*2);g.fill();g.restore();}}}
-  g.globalAlpha=1;
-  // screen-space light: sun rays, drifting motes, vignette
-  g.setTransform(DPR,0,0,DPR,0,0);g.save();g.beginPath();g.rect(0,0,W,Math.max(0,horizon));g.clip();g.globalCompositeOperation='lighter';
-  for(let i=0;i<12;i++){const an=Math.PI*.62+i*.075+Math.sin(ts*.12+i)*.02,l=Math.max(W,H)*1.3,wd=.018+.012*Math.sin(ts*.4+i*1.7);
-    const rg=g.createLinearGradient(sunX,sunY,sunX+Math.cos(an)*l,sunY+Math.sin(an)*l);rg.addColorStop(0,`rgba(255,225,165,${.09+BEAT.flash*.03})`);rg.addColorStop(1,'rgba(255,225,165,0)');
-    g.fillStyle=rg;g.beginPath();g.moveTo(sunX,sunY);g.lineTo(sunX+Math.cos(an-wd)*l,sunY+Math.sin(an-wd)*l);g.lineTo(sunX+Math.cos(an+wd)*l,sunY+Math.sin(an+wd)*l);g.fill();}
-  g.restore();g.globalCompositeOperation='lighter';
-  for(const m of D.motes){m.y-=.00025*m.s*(1+F.mid);m.x+=Math.sin(ts*.4+m.p)*.0002;if(m.y<-.02){m.y=1.02;m.x=Math.random();}
-    const a=(.2+.3*Math.sin(ts*3+m.p*3))*(.5+F.high*.5);if(a>0){g.fillStyle=`rgba(255,225,170,${a})`;g.beginPath();g.arc(m.x*W,m.y*H,.7+m.s*1.3,0,Math.PI*2);g.fill();}}
-  g.globalCompositeOperation='source-over';
-  const vg=g.createRadialGradient(W/2,H/2,Math.min(W,H)*.35,W/2,H/2,Math.hypot(W,H)*.6);vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(5,3,1,.55)');g.fillStyle=vg;g.fillRect(0,0,W,H);
-  // stage titles, in Ether's words
-  let st=ZR_STAGES[0];for(const s of ZR_STAGES)if(tt>=s.t)st=s;
-  const since=tt-st.t,ca=Math.min(1,since/1)*(since<4.5?1:Math.max(0,1-(since-4.5)/1));
-  zjInfo.textContent=`${st.n} · ${st.name} — ${st.sub}${ZR.cycle?` · journey ${ZR.cycle+1}`:''}`;
-  if(zjNames.value==='on'&&ca>0){const kk=Math.min(W,H)/800,y=H*(W>H?.1:.09)+20*kk;g.textAlign='center';g.globalAlpha=ca;
-    g.shadowColor='rgba(0,0,0,.6)';g.shadowBlur=12;
-    g.fillStyle='rgba(255,228,175,.95)';g.font=`700 ${Math.round(Math.min(44,30*Math.max(.85,kk)))}px ${AO_FONT}`;g.fillText(`${st.n}  ·  ${st.name.toUpperCase()}`,W/2,y);
-    g.fillStyle='rgba(255,236,205,.85)';g.font=`600 ${Math.round(Math.min(17,12.5*Math.max(.9,kk)))}px ${AO_FONT}`;g.fillText(st.sub.toUpperCase().split('').join(String.fromCharCode(8202)),W/2,y+24*Math.max(.85,kk));
-    g.shadowBlur=0;g.globalAlpha=1;g.textAlign='start';}
-}
 
 /* ---------- loop ---------- */
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -2183,8 +1991,8 @@ function frame(t){
   sense(t);
   const B=breathPhase(t);
   if(guide){const lbl=B.p<.5?'inhale':'exhale'; if(lbl!==lastLabel){breathEl.textContent=lbl;lastLabel=lbl;} breathEl.style.letterSpacing=(.2+B.v*.35)+'em';}
-  if(mode==='breath') drawBreath(t,B); else if(mode==='fascia') drawFascia(t,B); else if(mode==='cymatic') drawCymatic(t,B); else if(mode==='sigils') drawSigils(t,B); else if(mode==='solids') drawSolids(t,B); else if(mode==='images') drawImages(t,B); else if(mode==='journey') drawJourney(t,B); else if(mode==='alpha') drawAlpha(t,B); else if(mode==='genesis') drawGenesis(t,B); else if(mode==='zero') drawZero(t,B); else drawRipple(t,B);
-  if(mode==='sigils'||mode==='solids'||mode==='images'||mode==='journey'||mode==='alpha'||mode==='genesis'||mode==='zero')g.setTransform(DPR,0,0,DPR,0,0);
+  if(mode==='breath') drawBreath(t,B); else if(mode==='fascia') drawFascia(t,B); else if(mode==='cymatic') drawCymatic(t,B); else if(mode==='sigils') drawSigils(t,B); else if(mode==='solids') drawSolids(t,B); else if(mode==='images') drawImages(t,B); else if(mode==='journey') drawJourney(t,B); else if(mode==='alpha') drawAlpha(t,B); else if(mode==='genesis') drawGenesis(t,B); else drawRipple(t,B);
+  if(mode==='sigils'||mode==='solids'||mode==='images'||mode==='journey'||mode==='alpha'||mode==='genesis')g.setTransform(DPR,0,0,DPR,0,0);
   kalFrame();
   if(REC.on)recFrame();
   }catch(err){ // keep the app alive and report the problem instead of freezing
