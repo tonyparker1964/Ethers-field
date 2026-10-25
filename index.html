@@ -212,6 +212,7 @@ select option{background:#16141e}
     <div class="row" id="jrnRow" hidden>
       <button id="jrnRestart">↺ Restart journey</button>
       <select id="jrnLoop" aria-label="Loop or play once"><option value="loop" selected>Loop the journey</option><option value="once">Play once</option></select>
+      <select id="jrnKal" aria-label="Kaleidoscope"><option value="off" selected>Kaleidoscope off</option><option value="on">Kaleidoscope mandala</option></select>
       <select id="jrnFrame" aria-label="Framing"><option value="pano" selected>Panoramic 21:9</option><option value="fill">Fill screen</option></select>
       <label class="upload" title="Fly through your own images, in the order you pick them">+ Use my images<input id="jrnFile" type="file" accept="image/*" multiple></label>
       <button id="jrnReset" hidden>Use the built-in images</button>
@@ -1427,9 +1428,10 @@ const JBUILT=[
   {name:'Crimson pillars',path:[[.5,.5],[.54,.58],[.57,.6]],focus:[.57,.62]}
 ].map((k,i)=>Object.assign(k,{src:COSMOS[i]}));
 let JK=JBUILT.slice(),jP=null,jU={},jSegs=null,jTotal=0,jStart=null,jBeat=0,jLastZ=1,jMotes=null,jInfoT=0;
+const J_SEG=[6,8,12,10,7,9,16];const jrnKal=document.getElementById('jrnKal');
 const jrnLoop=document.getElementById('jrnLoop'),jrnFrame=document.getElementById('jrnFrame'),jrnInfo=document.getElementById('jrnInfo'),jrnReset=document.getElementById('jrnReset');
 const J_FS=`precision highp float;varying vec2 vUv;
-uniform sampler2D uI0,uI1;uniform float uAsp0,uAsp1,uMix,uDust,uT,uBeat,uBass,uFa;uniform vec4 uCam0,uCam1,uFrame;uniform vec2 uRes;
+uniform sampler2D uI0,uI1;uniform float uAsp0,uAsp1,uMix,uDust,uT,uBeat,uBass,uFa;uniform vec4 uCam0,uCam1,uFrame;uniform vec2 uRes,uKal;
 float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float noise(vec2 p){vec2 i=floor(p),f=fract(p);vec2 u=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1,0)),u.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),u.x),u.y);}
 float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p=p*2.03+vec2(1.7,9.2);a*=.5;}return v;}
@@ -1450,6 +1452,10 @@ vec3 shot(sampler2D tex,float asp,vec4 cam,vec2 f){
 void main(){
   vec2 f=(vUv-uFrame.xy)/uFrame.zw;
   if(f.x<0.||f.x>1.||f.y<0.||f.y>1.){gl_FragColor=vec4(0.,0.,0.,1.);return;}
+  vec2 fo=f;
+  if(uKal.x>.5){ // kaleidoscope: fold the frame into mirrored wedges that slowly turn
+    vec2 ps=(f-.5)*vec2(uFa,1.);float r=length(ps),a=atan(ps.y,ps.x)+uKal.y,sg=6.2831853/uKal.x;
+    a=mod(a,sg);a=abs(a-sg*.5);f=vec2(cos(a),sin(a))*r/vec2(uFa,1.)+.5;}
   vec3 col=shot(uI0,uAsp0,uCam0,f);
   if(uMix>.001)col=mix(col,shot(uI1,uAsp1,uCam1,f),uMix);
   if(uDust>.001){ // a veil of violet and sapphire nebula dust drifting toward the camera
@@ -1462,7 +1468,7 @@ void main(){
     col=mix(col,dust,dens);
   }
   col*=1.+uBeat*.04+uBass*.03;
-  col*=mix(.72,1.,smoothstep(.85,.3,length((f-.5)*vec2(1.,.9))*1.2));
+  col*=mix(.72,1.,smoothstep(.85,.3,length((fo-.5)*vec2(1.,.9))*1.2));
   col+=(hash(vUv*uRes+fract(uT*7.3))-.5)*.02;
   gl_FragColor=vec4(col,1.);
 }`;
@@ -1470,7 +1476,7 @@ function jInit(){
   const sh=(type,src)=>{const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(s));return s;};
   jP=gl.createProgram();gl.attachShader(jP,sh(gl.VERTEX_SHADER,IMG_VS));gl.attachShader(jP,sh(gl.FRAGMENT_SHADER,J_FS));gl.linkProgram(jP);
   if(!gl.getProgramParameter(jP,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(jP));
-  ['uI0','uI1','uAsp0','uAsp1','uMix','uDust','uT','uBeat','uBass','uFa','uCam0','uCam1','uFrame','uRes'].forEach(n=>jU[n]=gl.getUniformLocation(jP,n));
+  ['uI0','uI1','uAsp0','uAsp1','uMix','uDust','uT','uBeat','uBass','uFa','uCam0','uCam1','uFrame','uRes','uKal'].forEach(n=>jU[n]=gl.getUniformLocation(jP,n));
   gl.useProgram(jP);gl.uniform1i(jU.uI0,0);gl.uniform1i(jU.uI1,1);
 }
 function jLoad(k){
@@ -1541,6 +1547,8 @@ function drawJourney(t,B){
   gl.uniform1f(jU.uMix,st.mix);gl.uniform1f(jU.uDust,st.dust);gl.uniform1f(jU.uT,(t/1000)%3600);
   gl.uniform1f(jU.uBeat,reduce?0:jBeat);gl.uniform1f(jU.uBass,F.bass);gl.uniform1f(jU.uFa,fw/fh);
   gl.uniform4f(jU.uFrame,fx/W,fy/H,fw/W,fh/H);gl.uniform2f(jU.uRes,cw,ch);
+  const shownI=st.mix>.5&&st.i1!=null?st.i1:st.i0; // each image gets its own mandala form, swapped while the dust hides it
+  gl.uniform2f(jU.uKal,jrnKal.value==='on'?J_SEG[shownI%J_SEG.length]:0,(t/1000)*.025);
   gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
   // delicate drifting particles that move with the camera: forward in a glide, back in the pullback
   const z=st.mix>.5&&st.c1?st.c1[0]:st.c0[0],dz=(z-jLastZ)*60;jLastZ=z;
