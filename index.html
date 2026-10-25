@@ -75,6 +75,18 @@ button[aria-pressed="true"]{background:var(--fg);color:var(--ink);border-color:v
 .x:hover{color:var(--fg);border-color:var(--muted)}
 .thumbWrap{position:relative;flex:none}
 .thumbWrap .x{position:absolute;top:2px;right:2px;width:18px;height:18px;margin:0;font-size:11px;background:rgba(11,10,16,.85);border-color:var(--line);color:var(--fg)}
+.rec{color:#ff8a8a;border-color:rgba(255,120,120,.4)}
+.rec[aria-pressed="true"]{background:#d9304a;color:#fff;border-color:#d9304a}
+.recPill{position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:30;display:flex;align-items:center;gap:8px;background:rgba(22,20,30,.85);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,120,120,.5);color:var(--fg)}
+.recDot{width:9px;height:9px;border-radius:50%;background:#ff4d5e;animation:recBlink 1.2s infinite}
+@keyframes recBlink{50%{opacity:.25}}
+.recStop{color:#ff8a8a}
+.recDlg{position:fixed;inset:0;z-index:40;background:rgba(8,7,12,.8);display:flex;align-items:center;justify-content:center;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.recCard{background:#16141e;border:1px solid var(--line);border-radius:16px;padding:18px;width:min(560px,100%);display:flex;flex-direction:column;gap:12px}
+.recCard h3{margin:0;font-weight:600;font-size:18px}
+.recCard video{width:100%;max-height:50vh;border-radius:10px;background:#000}
+.recMeta{margin:0;font:500 11px var(--mono);color:var(--muted);letter-spacing:.04em}
+@media (prefers-reduced-motion:reduce){.recDot{animation:none}}
 .hint{font:500 10px var(--mono);color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
 .tracks{display:flex;gap:6px;overflow-x:auto;min-width:0;flex:1;scrollbar-width:none}
 .tracks button{font-size:11px;padding:6px 11px;max-width:180px;overflow:hidden;text-overflow:ellipsis}
@@ -119,6 +131,11 @@ select option{background:#16141e}
     </div>
     <div class="row">
       <button class="play" id="play">▶ Play</button>
+      <button id="recBtn" class="rec" title="Record what's on screen, with sound">● Record</button>
+      <select id="recShape" aria-label="Video shape">
+        <option value="screen" selected>Video: as on screen</option><option value="16:9">Video: 16:9 widescreen</option>
+        <option value="9:16">Video: 9:16 vertical</option><option value="1:1">Video: 1:1 square</option><option value="21:9">Video: 21:9 cinema</option>
+      </select>
       <label class="upload" title="Upload audio files">+ Add sounds<input id="file" type="file" accept="audio/*,video/*,.mp3,.m4a,.wav,.aac,.ogg,.oga,.opus,.flac,.aif,.aiff,.caf,.mp4,.mov,.m4v,.webm" multiple></label>
       <div class="tracks" id="tracks" role="list"></div>
     </div>
@@ -240,6 +257,15 @@ select option{background:#16141e}
   </div>
 </div>
 <button class="showTab" id="showTab" hidden>▲ Controls</button>
+<button class="recPill" id="recPill" hidden aria-label="Stop recording"><span class="recDot"></span><span id="recTime">REC 0:00</span><span class="recStop">Stop</span></button>
+<div class="recDlg" id="recDlg" hidden role="dialog" aria-modal="true" aria-labelledby="recTitle">
+  <div class="recCard">
+    <h3 id="recTitle">Your recording</h3>
+    <video id="recVideo" controls playsinline></video>
+    <p class="recMeta" id="recMeta"></p>
+    <div class="row"><button class="play" id="recSave">Save video</button><button id="recDiscard">Discard</button></div>
+  </div>
+</div>
 <div class="drop" id="drop" hidden>Drop sounds to feel them</div>
 
 <div id="errBox" role="alert" hidden style="position:fixed;left:12px;right:12px;top:calc(72px + env(safe-area-inset-top,0px));z-index:50;background:#2a1216;color:#ffd9d9;border:1px solid #7a2a33;border-radius:10px;padding:10px 12px;font:12px/1.45 ui-monospace,Menlo,monospace;white-space:pre-wrap;max-height:40vh;overflow:auto"></div>
@@ -276,7 +302,7 @@ const PAL={
 let pal=PAL.ember, mode='breath', sens=1, bpm=6, guide=false;
 
 /* ---------- audio ---------- */
-let ctx,analyser,master,fbuf,tbuf,mediaSrc,sampleNodes=null,beatAn=null,bbuf=null;
+let recDest=null,ctx,analyser,master,fbuf,tbuf,mediaSrc,sampleNodes=null,beatAn=null,bbuf=null;
 const audio=new Audio(); audio.crossOrigin='anonymous'; audio.loop=true; audio.preload='auto'; audio.setAttribute('playsinline','');
 // iPhone: let sound play even when the ring/silent switch is set to silent (Safari 16.4+)
 try{ if(navigator.audioSession) navigator.audioSession.type='playback'; }catch(e){}
@@ -290,6 +316,7 @@ function ensureCtx(){
   master=ctx.createGain(); master.gain.value=.9;
   beatAn=ctx.createAnalyser(); beatAn.fftSize=1024; beatAn.smoothingTimeConstant=.15; bbuf=new Uint8Array(beatAn.frequencyBinCount);
   analyser.connect(beatAn); beatAn.connect(master); master.connect(ctx.destination);
+  try{ recDest=ctx.createMediaStreamDestination(); master.connect(recDest); }catch(e){}
   mediaSrc=ctx.createMediaElementSource(audio); mediaSrc.connect(analyser);
   fbuf=new Uint8Array(analyser.frequencyBinCount); tbuf=new Uint8Array(analyser.fftSize);
 }
@@ -1564,6 +1591,78 @@ function drawJourney(t,B){
     jrnInfo.textContent=`Image ${(st.mix>.5&&st.i1!=null?st.i1:st.i0)+1} of ${JK.length} · ${fmt(tt)} / ${fmt(jTotal)}`;}
 }
 
+/* ---------- recording: capture the visuals and the sound into a video the user can save ---------- */
+const REC={on:false,rec:null,chunks:[],blob:null,ext:'webm',t0:0,shape:'screen',canvas:null,cx:null,timer:null};
+const recBtn=document.getElementById('recBtn'),recShape=document.getElementById('recShape'),recPill=document.getElementById('recPill'),recTime=document.getElementById('recTime');
+const recDlg=document.getElementById('recDlg'),recVideo=document.getElementById('recVideo'),recMeta=document.getElementById('recMeta');
+const REC_MAX=15*60*1000;
+function recSize(shape){
+  if(shape==='16:9')return [1920,1080];if(shape==='9:16')return [1080,1920];if(shape==='1:1')return [1080,1080];if(shape==='21:9')return [2520,1080];
+  const sc=Math.min(1920/Math.max(W,H),Math.min(DPR,1.5));return [Math.round(W*sc/2)*2,Math.round(H*sc/2)*2];
+}
+function recMime(){
+  const opts=[['video/mp4;codecs=avc1.42E01E,mp4a.40.2','mp4'],['video/mp4;codecs=avc1,opus','mp4'],['video/mp4','mp4'],['video/webm;codecs=vp9,opus','webm'],['video/webm;codecs=vp8,opus','webm'],['video/webm','webm']];
+  if(!window.MediaRecorder)return [null,null];
+  for(const [m,e] of opts){try{if(MediaRecorder.isTypeSupported(m))return [m,e];}catch(err){}}
+  return [null,null];
+}
+function recFrame(){ // crop the live screen to the chosen shape and paint it into the recording canvas
+  const c=REC.canvas,x=REC.cx,tw=c.width,th=c.height,ta=tw/th,sa=W/H;
+  let sw=W,sh=H;if(ta>sa)sh=W/ta;else sw=H*ta;
+  const sx=(W-sw)/2,sy=(H-sh)/2;
+  x.fillStyle='#000';x.fillRect(0,0,tw,th);
+  if(!glc.hidden&&glc.width){const kx=glc.width/W,ky=glc.height/H;x.drawImage(glc,sx*kx,sy*ky,sw*kx,sh*ky,0,0,tw,th);}
+  const kx=cv.width/W,ky=cv.height/H;x.drawImage(cv,sx*kx,sy*ky,sw*kx,sh*ky,0,0,tw,th);
+  if(REC.track&&REC.track.requestFrame)REC.track.requestFrame(); // hand every drawn frame to the recorder
+}
+async function recStart(){
+  const [mime,ext]=recMime();
+  if(!mime||!HTMLCanvasElement.prototype.captureStream){now.textContent='This browser cannot record video. Try Chrome or Safari on a computer.';return;}
+  ensureCtx();try{await ctx.resume();}catch(e){}
+  const [tw,th]=recSize(recShape.value);
+  REC.canvas=document.createElement('canvas');REC.canvas.width=tw;REC.canvas.height=th;REC.cx=REC.canvas.getContext('2d');
+  let vs=REC.canvas.captureStream(0);REC.track=vs.getVideoTracks()[0];
+  if(!REC.track||!REC.track.requestFrame){vs.getTracks().forEach(t=>t.stop());vs=REC.canvas.captureStream(30);REC.track=null;}
+  const tracks=[...vs.getVideoTracks()];
+  recFrame();
+  if(recDest)tracks.push(...recDest.stream.getAudioTracks());
+  try{REC.rec=new MediaRecorder(new MediaStream(tracks),{mimeType:mime,videoBitsPerSecond:tw*th>2.5e6?12e6:8e6,audioBitsPerSecond:192000});}
+  catch(e){now.textContent='Recording could not start in this browser.';return;}
+  REC.chunks=[];REC.ext=ext;REC.mime=mime.split(';')[0];REC.size=[tw,th];
+  REC.rec.ondataavailable=e=>{if(e.data&&e.data.size)REC.chunks.push(e.data);};
+  REC.rec.onstop=()=>{vs.getTracks().forEach(t=>t.stop());recFinish();};
+  REC.rec.start(1000);REC.on=true;REC.t0=performance.now();
+  recBtn.textContent='■ Stop';recBtn.setAttribute('aria-pressed','true');recPill.hidden=false;
+  REC.timer=setInterval(()=>{const s=(performance.now()-REC.t0)/1000;recTime.textContent=`REC ${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+    if(performance.now()-REC.t0>REC_MAX)recStop();},250);
+}
+function recStop(){
+  if(!REC.on)return;REC.on=false;clearInterval(REC.timer);
+  recBtn.textContent='● Record';recBtn.setAttribute('aria-pressed','false');recPill.hidden=true;
+  try{REC.rec.stop();}catch(e){recFinish();}
+}
+function recFinish(){
+  if(!REC.chunks.length){now.textContent='Nothing was recorded. Try again.';return;}
+  REC.blob=new Blob(REC.chunks,{type:REC.mime});
+  const secs=(performance.now()-REC.t0)/1000;
+  if(recVideo.src)URL.revokeObjectURL(recVideo.src);
+  recVideo.src=URL.createObjectURL(REC.blob);
+  recMeta.textContent=`${REC.size[0]}×${REC.size[1]} · ${REC.ext.toUpperCase()} · ${Math.floor(secs/60)}:${String(Math.floor(secs%60)).padStart(2,'0')} · ${(REC.blob.size/1048576).toFixed(1)} MB`;
+  recDlg.hidden=false;
+}
+recBtn.onclick=()=>REC.on?recStop():recStart();
+recPill.onclick=recStop;
+document.getElementById('recDiscard').onclick=()=>{recDlg.hidden=true;recVideo.pause();REC.blob=null;};
+document.getElementById('recSave').onclick=async()=>{
+  if(!REC.blob)return;
+  const d=new Date(),stamp=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const name=`Ethers Field ${mode} ${stamp}.${REC.ext}`;
+  const dl=(window.claude&&window.claude.use)?await window.claude.use('downloads'):null;
+  if(dl){try{await dl.save({filename:name,data:REC.blob});recMeta.textContent='Saved.';}catch(e){recMeta.textContent=e&&e.code==='declined'?'Save cancelled.':'Could not save here. Open Ether\'s Field on its website to save.';}return;}
+  // on the website: an ordinary download
+  const a=document.createElement('a');a.href=recVideo.src;a.download=name;document.body.appendChild(a);a.click();a.remove();recMeta.textContent='Saved to your downloads.';
+};
+
 /* ---------- loop ---------- */
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 let frameErrs=0;
@@ -1574,6 +1673,7 @@ function frame(t){
   if(guide){const lbl=B.p<.5?'inhale':'exhale'; if(lbl!==lastLabel){breathEl.textContent=lbl;lastLabel=lbl;} breathEl.style.letterSpacing=(.2+B.v*.35)+'em';}
   if(mode==='breath') drawBreath(t,B); else if(mode==='fascia') drawFascia(t,B); else if(mode==='cymatic') drawCymatic(t,B); else if(mode==='sigils') drawSigils(t,B); else if(mode==='solids') drawSolids(t,B); else if(mode==='images') drawImages(t,B); else if(mode==='journey') drawJourney(t,B); else drawRipple(t,B);
   if(mode==='sigils'||mode==='solids'||mode==='images'||mode==='journey')g.setTransform(DPR,0,0,DPR,0,0);
+  if(REC.on)recFrame();
   }catch(err){ // keep the app alive and report the problem instead of freezing
     g.setTransform(DPR,0,0,DPR,0,0);g.globalAlpha=1;g.globalCompositeOperation='source-over';
     if(frameErrs++<3&&window.__efErr)window.__efErr(`${mode} mode: ${err&&err.message||err}${err&&err.stack?' — '+String(err.stack).split('\n').slice(0,2).join(' | '):''}`);
