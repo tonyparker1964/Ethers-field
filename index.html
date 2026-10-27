@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Ether&#8217;s Field</title>
 <meta name="description" content="Ether's Field: beat-synced visuals for your own music — cymatic elements, a glyph vortex, Platonic solids, chakra tones and moving elemental art.">
-<meta name="theme-color" content="#0b0a10">
+<meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -13,103 +13,176 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="icons/favicon.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<style>:root{color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#0b0a10;color:#efe9f5}img{max-width:100%}[hidden]{display:none!important}</style>
+<style>:root{color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#000;color:#f5f5f7}img{max-width:100%}[hidden]{display:none!important}</style>
 </head>
 <body>
 <title>Ether&#8217;s Field</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,600&family=Cinzel:wght@700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&display=swap">
 <style>
-/* Layout: full-bleed living canvas; a quiet glass dock floats at the bottom, readouts float top-left. Single dark world by choice. */
+/* Apple-style dark interface: San Francisco system type, frosted glass materials, capsule controls and a sheet-style dock.
+   The canvas is the content; the chrome stays quiet and lets the visuals lead. The palette's colour tints sliders and Play. */
 :root{
-  --ink:#0b0a10; --surface:rgba(22,20,30,.72); --line:rgba(235,225,255,.12);
-  --fg:#efe9f5; --muted:#9d95ab; --accent:#ffb38a;
-  --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
-  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#000;
+  --glass:rgba(30,30,32,.66);
+  --glass-strong:rgba(44,44,46,.86);
+  --fill:rgba(118,118,128,.24);
+  --fill-hover:rgba(118,118,128,.36);
+  --fill-quiet:rgba(255,255,255,.045);
+  --sep:rgba(84,84,88,.55);
+  --line:rgba(255,255,255,.1);
+  --fg:#f5f5f7; --muted:rgba(235,235,245,.62); --faint:rgba(235,235,245,.3);
+  --accent:#ffb38a; --red:#ff453a;
+  --text:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",system-ui,sans-serif;
+  --display:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",system-ui,sans-serif;
+  --mono:var(--text);
+  --ease:cubic-bezier(.32,.72,0,1);
+  --material:saturate(180%) blur(30px);
   color-scheme:dark;
 }
 html,body{height:100%}
-body{background:var(--ink);color:var(--fg);font-family:var(--display);overflow:hidden}
+body{background:var(--ink);color:var(--fg);font-family:var(--text);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;overflow:hidden;-webkit-tap-highlight-color:transparent}
 canvas{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
-.top{position:fixed;top:0;left:0;right:0;padding-top:calc(14px + env(safe-area-inset-top,0px));
-  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+
+/* header: title and the live sound readout */
+.top{position:fixed;top:0;left:0;right:0;padding-top:calc(18px + env(safe-area-inset-top,0px));
+  padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));
   display:flex;justify-content:space-between;align-items:flex-start;gap:12px;pointer-events:none}
-.brand h1{margin:0;font-weight:300;font-size:clamp(20px,4vw,28px);letter-spacing:-.01em}
-.brand h1 b{font-weight:600}
-.brand p{margin:4px 0 0;font:500 11px/1.4 var(--mono);color:var(--muted);letter-spacing:.06em;text-transform:uppercase;max-width:46ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.meters{display:grid;grid-template-columns:auto 64px;gap:5px 8px;align-items:center;font:500 10px var(--mono);color:var(--muted);letter-spacing:.08em}
-.meter{height:3px;background:var(--line);border-radius:2px;overflow:hidden}
+.brand h1{margin:0;font:700 clamp(24px,3.6vw,32px)/1.08 var(--display);letter-spacing:-.025em;text-shadow:0 1px 18px rgba(0,0,0,.45)}
+.brand h1 b{font-weight:700}
+.brand p{margin:6px 0 0;font:400 14px/1.35 var(--text);color:var(--muted);letter-spacing:-.01em;max-width:46ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-shadow:0 1px 12px rgba(0,0,0,.5)}
+.meters{display:grid;grid-template-columns:auto 76px;gap:8px 12px;align-items:center;font:500 12px var(--text);color:var(--muted);letter-spacing:-.005em;
+  padding:12px 14px;background:var(--glass);backdrop-filter:var(--material);-webkit-backdrop-filter:var(--material);border-radius:16px;border:.5px solid var(--line)}
+.meter{height:4px;background:var(--fill);border-radius:2px;overflow:hidden}
+.meter i{display:block;height:100%;width:0;background:var(--accent);border-radius:2px;transition:width .08s linear}
 .beatdot{width:9px;height:9px;border-radius:50%;background:var(--accent);opacity:.15;justify-self:start}
-.meter i{display:block;height:100%;width:0;background:var(--accent);transition:width .08s linear}
-.breath{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);font-weight:300;font-size:clamp(16px,3vw,22px);letter-spacing:.3em;text-transform:lowercase;color:var(--fg);opacity:.0;pointer-events:none;transition:opacity 1.2s}
-.breath.on{opacity:.55}
-.dock{position:fixed;left:0;right:0;bottom:0;padding-bottom:calc(14px + env(safe-area-inset-bottom,0px));transition:transform .45s cubic-bezier(.2,.8,.2,1),opacity .45s;
-  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;justify-content:center}
-.panel{background:var(--surface);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:18px;padding:12px;display:flex;flex-direction:column;gap:10px;width:min(760px,100%);transition:opacity .6s}
+.breath{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);font:300 clamp(18px,3vw,26px) var(--display);letter-spacing:.3em;text-transform:lowercase;color:var(--fg);opacity:0;pointer-events:none;transition:opacity 1.2s}
+.breath.on{opacity:.6}
+
+/* the control sheet */
+.dock{position:fixed;left:0;right:0;bottom:0;padding-bottom:calc(14px + env(safe-area-inset-bottom,0px));transition:transform .5s var(--ease),opacity .5s;
+  padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:max(14px,env(safe-area-inset-right,0px));display:flex;justify-content:center}
+.panel{background:var(--glass);backdrop-filter:var(--material);-webkit-backdrop-filter:var(--material);border:.5px solid var(--line);border-radius:28px;
+  padding:0 16px 16px;display:flex;flex-direction:column;gap:12px;width:min(840px,100%);box-sizing:border-box;
+  box-shadow:0 30px 80px rgba(0,0,0,.55),inset 0 .5px 0 rgba(255,255,255,.14);transition:opacity .6s}
 .dock.away{transform:translateY(calc(100% + var(--dy,0px) + 24px));opacity:0;pointer-events:none}
-.handle{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:-4px -2px 0;padding-bottom:8px;border-bottom:1px solid var(--line);cursor:ns-resize;touch-action:none;user-select:none;-webkit-user-select:none}
-.grip{width:40px;height:5px;border-radius:3px;background:var(--muted);opacity:.6;margin-right:4px}
-.handle.dragging .grip{background:var(--accent);opacity:1}
+.handle{position:relative;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:18px 0 12px;border-bottom:.5px solid var(--sep);cursor:ns-resize;touch-action:none;user-select:none;-webkit-user-select:none}
+.grip{position:absolute;left:50%;top:6px;transform:translateX(-50%);width:36px;height:5px;border-radius:3px;background:var(--faint);transition:background-color .2s}
+.handle:hover .grip,.handle.dragging .grip{background:var(--muted)}
 .handle button,.handle label{cursor:pointer}
-.handle button{padding:6px 10px;font-size:11px}
-.handle .ctl input[type=range]{width:80px}
-.snap{display:inline-flex;gap:0}.snap button{border-radius:0;margin-left:-1px}.snap button:first-child{border-radius:999px 0 0 999px;margin-left:0}.snap button:last-child{border-radius:0 999px 999px 0}
+.handle button{padding:6px 12px;font-size:13px}
+.handle .icon{width:30px;height:30px;padding:0;display:inline-grid;place-items:center}
+.handle .icon svg{width:12px;height:12px}
+.handle .ctl input[type=range]{width:84px}
+.snap{display:inline-flex;gap:0;background:var(--fill);border-radius:9px;padding:2px}
+.snap button{background:transparent;border-radius:7px;padding:5px 12px}
+.snap button:hover{background:rgba(255,255,255,.06)}
+.snap button[aria-pressed="true"]{background:#636366;color:#fff;box-shadow:0 3px 8px rgba(0,0,0,.18)}
 .dock.side{top:0;bottom:0!important;left:0;right:auto;width:min(380px,92vw);padding:calc(10px + env(safe-area-inset-top,0px)) 0 calc(10px + env(safe-area-inset-bottom,0px)) max(10px,env(safe-area-inset-left,0px));align-items:stretch;justify-content:stretch}
 .dock.side.right{left:auto;right:0;padding-left:0;padding-right:max(10px,env(safe-area-inset-right,0px))}
-.dock.side .panel{width:100%;max-height:100%;overflow-y:auto;overscroll-behavior:contain;box-sizing:border-box}
+.dock.side .panel{width:100%;max-height:100%;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}
+.dock.side .panel::-webkit-scrollbar{display:none}
 .dock.side #dockUp,.dock.side #dockDown{display:none}
 .dock.side .handle{cursor:grab}
+.dock.side .seg{flex-wrap:wrap}
 .dock.side.away{transform:translateX(calc(-100% - 24px))}
 .dock.side.right.away{transform:translateX(calc(100% + 24px))}
-.showTab.left{left:max(12px,env(safe-area-inset-left,0px));transform:none}.showTab.right{left:auto;right:max(12px,env(safe-area-inset-right,0px));transform:none}
-.top{transition:left .45s,right .45s}body:has(.dock.side:not(.right):not(.away)) .top{left:min(390px,92vw)}body:has(.dock.side.right:not(.away)) .top{right:min(390px,92vw)}
-.snapHint{position:fixed;pointer-events:none;z-index:4;border:2px dashed var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent);border-radius:18px;opacity:0;transition:opacity .2s;top:8px;bottom:8px;width:min(380px,92vw)}
+.showTab.left{left:max(14px,env(safe-area-inset-left,0px));transform:none}.showTab.right{left:auto;right:max(14px,env(safe-area-inset-right,0px));transform:none}
+.top{transition:left .5s var(--ease),right .5s var(--ease)}body:has(.dock.side:not(.right):not(.away)) .top{left:min(390px,92vw)}body:has(.dock.side.right:not(.away)) .top{right:min(390px,92vw)}
+.snapHint{position:fixed;pointer-events:none;z-index:4;border:1.5px solid rgba(255,255,255,.35);background:rgba(255,255,255,.07);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-radius:28px;opacity:0;transition:opacity .2s;top:8px;bottom:8px;width:min(380px,92vw)}
 .snapHint.on{opacity:1}.snapHint.left{left:8px}.snapHint.right{right:8px}.snapHint.bottom{left:8px;right:8px;width:auto;top:auto;height:28vh}
-.showTab{position:fixed;left:50%;bottom:calc(12px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--surface);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);z-index:5}
+.showTab{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:5;
+  background:var(--glass);backdrop-filter:var(--material);-webkit-backdrop-filter:var(--material);border:.5px solid var(--line);padding:10px 20px;box-shadow:0 12px 40px rgba(0,0,0,.45)}
+.showTab:hover{background:var(--glass-strong)}
+
+/* rows and grouped settings */
 .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-button,.upload{font:500 12px var(--mono);color:var(--fg);background:transparent;border:1px solid var(--line);border-radius:999px;padding:8px 13px;cursor:pointer;letter-spacing:.04em;white-space:nowrap}
-button:hover,.upload:hover{border-color:var(--muted)}
-button:focus-visible,.upload:focus-within,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-button[aria-pressed="true"]{background:var(--fg);color:var(--ink);border-color:var(--fg)}
-.play{background:var(--accent);color:var(--ink);border-color:var(--accent);min-width:84px;font-weight:500}
-.upload input{position:absolute;width:1px;height:1px;opacity:0}
-.upload{position:relative}
-[hidden]{display:none!important}
-.seg{display:flex;gap:4px;flex-wrap:wrap}
-.thumbs{display:flex;gap:6px;overflow-x:auto;min-width:0;flex:1 1 200px;scrollbar-width:none;padding:2px}
-.thumb{padding:0;width:38px;height:38px;border-radius:9px;flex:none;background:#16141e center/cover no-repeat}
-.thumb[aria-pressed="true"]{background-color:#16141e;border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
-.trk{display:inline-flex;align-items:center;flex:none;border:1px solid var(--line);border-radius:999px}
-.trk>button{border:0}
-.trk>button[aria-pressed="true"]{border-radius:999px}
-.x{width:26px;height:26px;padding:0;margin-right:3px;border-radius:50%;font-size:14px;line-height:1;display:inline-grid;place-items:center;flex:none;color:var(--muted);border-color:transparent}
-.x:hover{color:var(--fg);border-color:var(--muted)}
-.thumbWrap{position:relative;flex:none}
-.thumbWrap .x{position:absolute;top:2px;right:2px;width:18px;height:18px;margin:0;font-size:11px;background:rgba(11,10,16,.85);border-color:var(--line);color:var(--fg)}
-.rec{color:#ff8a8a;border-color:rgba(255,120,120,.4)}
-.rec[aria-pressed="true"]{background:#d9304a;color:#fff;border-color:#d9304a}
-.recPill{position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:30;display:flex;align-items:center;gap:8px;background:rgba(22,20,30,.85);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,120,120,.5);color:var(--fg)}
-.recDot{width:9px;height:9px;border-radius:50%;background:#ff4d5e;animation:recBlink 1.2s infinite}
-@keyframes recBlink{50%{opacity:.25}}
-.recStop{color:#ff8a8a}
-.recDlg{position:fixed;inset:0;z-index:40;background:rgba(8,7,12,.8);display:flex;align-items:center;justify-content:center;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-.recCard{background:#16141e;border:1px solid var(--line);border-radius:16px;padding:18px;width:min(560px,100%);display:flex;flex-direction:column;gap:12px}
-.recCard h3{margin:0;font-weight:600;font-size:18px}
-.recCard video{width:100%;max-height:50vh;border-radius:10px;background:#000}
-.recMeta{margin:0;font:500 11px var(--mono);color:var(--muted);letter-spacing:.04em}
-@media (prefers-reduced-motion:reduce){.recDot{animation:none}}
-.hint{font:500 10px var(--mono);color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
-.tracks{display:flex;gap:6px;overflow-x:auto;min-width:0;flex:1;scrollbar-width:none}
-.tracks button{font-size:11px;padding:6px 11px;max-width:180px;overflow:hidden;text-overflow:ellipsis}
-label.ctl{display:flex;align-items:center;gap:8px;font:500 11px var(--mono);color:var(--muted);letter-spacing:.06em}
-input[type=range]{accent-color:var(--accent);width:96px}
-select{font:500 12px var(--mono);background:transparent;color:var(--fg);border:1px solid var(--line);border-radius:999px;padding:7px 10px}
-select option{background:#16141e}
+.row[id$="Row"]{background:var(--fill-quiet);border-radius:18px;padding:10px;border:.5px solid rgba(255,255,255,.05)}
 .spacer{flex:1}
-.drop{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font-weight:300;font-size:clamp(22px,5vw,40px);background:rgba(11,10,16,.7);border:2px dashed var(--accent);pointer-events:none}
-@media (max-width:560px){.meters{display:none}input[type=range]{width:72px}}
-@media (prefers-reduced-motion:reduce){.meter i,.breath,.panel{transition:none}}
+
+/* capsule buttons */
+button,.upload{font:500 14px/1.2 var(--text);letter-spacing:-.01em;color:var(--fg);background:var(--fill);border:0;border-radius:999px;padding:8px 16px;cursor:pointer;white-space:nowrap;
+  transition:background-color .2s,color .2s,transform .15s var(--ease)}
+button:hover,.upload:hover{background:var(--fill-hover)}
+button:active,.upload:active{transform:scale(.96)}
+button:focus-visible,.upload:focus-within,select:focus-visible,input:focus-visible{outline:3px solid color-mix(in srgb,var(--accent) 75%,#fff);outline-offset:2px}
+button[aria-pressed="true"]{background:var(--fg);color:#000}
+.play{background:var(--accent);color:#000;font-weight:600;min-width:100px;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.play:hover{background:color-mix(in srgb,var(--accent) 85%,#fff)}
+.play::before{content:"";width:10px;height:12px;background:currentColor;clip-path:polygon(0 0,100% 50%,0 100%)}
+.play.on::before{clip-path:none;background:linear-gradient(90deg,currentColor 0 35%,transparent 35% 65%,currentColor 65%)}
+#recSave.play::before{display:none}
+.upload{position:relative;display:inline-flex;align-items:center}
+.upload input{position:absolute;width:1px;height:1px;opacity:0}
+[hidden]{display:none!important}
+
+/* segmented controls */
+.seg{display:flex;gap:2px;background:var(--fill);border-radius:11px;padding:2px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;max-width:100%;box-sizing:border-box}
+.seg::-webkit-scrollbar{display:none}
+.row>.seg[aria-label="Visual mode"]{flex:1 1 100%;flex-wrap:wrap}
+.row>.seg[aria-label="Visual mode"] button{flex:0 0 auto}
+.seg button{background:transparent;border-radius:9px;padding:7px 14px;font-size:13px;flex:1 0 auto;color:var(--fg)}
+.seg button:hover{background:rgba(255,255,255,.06)}
+.seg button[aria-pressed="true"]{background:#636366;color:#fff;box-shadow:0 3px 8px rgba(0,0,0,.18),0 3px 1px rgba(0,0,0,.04)}
+
+/* pop-up menus */
+select{appearance:none;-webkit-appearance:none;font:500 14px/1.2 var(--text);letter-spacing:-.01em;color:var(--fg);border:0;border-radius:999px;padding:8px 34px 8px 15px;cursor:pointer;
+  background:var(--fill) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 14'%3E%3Cpath d='M1 5l3.5-3.5L8 5M1 9l3.5 3.5L8 9' fill='none' stroke='%23ebebf5' stroke-opacity='.6' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 13px center/8px 13px;transition:background-color .2s}
+select:hover{background-color:var(--fill-hover)}
+select option,select optgroup{background:#2c2c2e;color:var(--fg)}
+
+/* sliders */
+label.ctl{display:flex;align-items:center;gap:10px;font:500 13px var(--text);color:var(--muted);letter-spacing:-.005em}
+input[type=checkbox]{accent-color:var(--accent);width:18px;height:18px}
+input[type=range]{-webkit-appearance:none;appearance:none;width:110px;height:24px;background:transparent;cursor:pointer;--p:50%}
+input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:linear-gradient(var(--accent),var(--accent)) 0/var(--p) 100% no-repeat,var(--fill-hover)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;margin-top:-9px;border-radius:50%;background:#fff;box-shadow:0 .5px 4px rgba(0,0,0,.18),0 6px 13px rgba(0,0,0,.18)}
+input[type=range]::-moz-range-track{height:4px;border-radius:2px;background:var(--fill-hover)}
+input[type=range]::-moz-range-progress{height:4px;border-radius:2px;background:var(--accent)}
+input[type=range]::-moz-range-thumb{width:22px;height:22px;border:0;border-radius:50%;background:#fff;box-shadow:0 .5px 4px rgba(0,0,0,.18),0 6px 13px rgba(0,0,0,.18)}
+.hint{font:400 13px/1.35 var(--text);color:var(--muted);letter-spacing:-.005em}
+
+/* tracks and images */
+.tracks{display:flex;gap:6px;overflow-x:auto;min-width:0;flex:1 1 180px;scrollbar-width:none}
+.tracks::-webkit-scrollbar{display:none}
+.tracks button{font-size:13px;padding:7px 13px;max-width:200px;overflow:hidden;text-overflow:ellipsis}
+.trk{display:inline-flex;align-items:center;flex:none;background:var(--fill);border-radius:999px}
+.trk>button{background:transparent}
+.trk>button[aria-pressed="true"]{background:var(--fg);color:#000;border-radius:999px}
+.x{width:24px;height:24px;padding:0;margin-right:4px;border-radius:50%;font-size:14px;line-height:1;display:inline-grid;place-items:center;flex:none;color:var(--muted);background:transparent}
+.x:hover{color:var(--fg);background:var(--fill-hover)}
+.thumbs{display:flex;gap:8px;overflow-x:auto;min-width:0;flex:1 1 200px;scrollbar-width:none;padding:3px}
+.thumbs::-webkit-scrollbar{display:none}
+.thumb{padding:0;width:42px;height:42px;border-radius:10px;flex:none;background:#2c2c2e center/cover no-repeat}
+.thumb[aria-pressed="true"]{background-color:#2c2c2e;box-shadow:0 0 0 2px #000,0 0 0 4px var(--accent)}
+.thumbWrap{position:relative;flex:none}
+.thumbWrap .x{position:absolute;top:2px;right:2px;width:18px;height:18px;margin:0;font-size:11px;background:rgba(0,0,0,.6);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:var(--fg)}
+
+/* recording */
+.rec{display:inline-flex;align-items:center;gap:8px}
+.rec::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--red)}
+.rec[aria-pressed="true"]{background:var(--red);color:#fff}
+.rec[aria-pressed="true"]::before{border-radius:2px;background:#fff}
+.recPill{position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:30;display:flex;align-items:center;gap:10px;
+  background:var(--glass-strong);backdrop-filter:var(--material);-webkit-backdrop-filter:var(--material);border:.5px solid var(--line);color:var(--fg);font-variant-numeric:tabular-nums;box-shadow:0 12px 40px rgba(0,0,0,.45)}
+.recDot{width:9px;height:9px;border-radius:50%;background:var(--red);animation:recBlink 1.2s infinite}
+@keyframes recBlink{50%{opacity:.25}}
+.recStop{color:var(--red);font-weight:600}
+.recDlg{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.5);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);display:flex;align-items:center;justify-content:center;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.recCard{background:var(--glass-strong);backdrop-filter:var(--material);-webkit-backdrop-filter:var(--material);border:.5px solid var(--line);border-radius:24px;padding:22px;width:min(560px,100%);display:flex;flex-direction:column;gap:14px;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+.recCard h3{margin:0;font:700 22px/1.2 var(--display);letter-spacing:-.022em}
+.recCard video{width:100%;max-height:50vh;border-radius:14px;background:#000}
+.recMeta{margin:0;font:400 13px var(--text);color:var(--muted)}
+.drop{position:fixed;inset:12px;display:flex;align-items:center;justify-content:center;font:600 clamp(22px,4vw,36px) var(--display);letter-spacing:-.02em;background:rgba(0,0,0,.45);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:2px solid var(--accent);border-radius:32px;pointer-events:none}
+
+@media (max-width:560px){
+  .meters{display:none}
+  input[type=range]{width:84px}
+  .panel{border-radius:24px;padding:0 12px 12px}
+  button,.upload,select{font-size:13px}
+}
+@media (prefers-reduced-motion:reduce){.meter i,.breath,.panel,.dock,button{transition:none}.recDot{animation:none}}
 </style>
 
 <canvas id="glc" aria-hidden="true" hidden></canvas>
@@ -122,10 +195,10 @@ select option{background:#16141e}
     <p id="now">Sample · low drone with slow swells</p>
   </div>
   <div class="meters" aria-hidden="true">
-    <span>GROUND</span><div class="meter"><i id="mB"></i></div>
-    <span>BODY</span><div class="meter"><i id="mM"></i></div>
-    <span>SKIN</span><div class="meter"><i id="mH"></i></div>
-    <span>BEAT</span><div class="beatdot" id="bDot"></div>
+    <span>Ground</span><div class="meter"><i id="mB"></i></div>
+    <span>Body</span><div class="meter"><i id="mM"></i></div>
+    <span>Skin</span><div class="meter"><i id="mH"></i></div>
+    <span>Beat</span><div class="beatdot" id="bDot"></div>
   </div>
 </div>
 
@@ -135,17 +208,17 @@ select option{background:#16141e}
   <div class="panel" id="panel">
     <div class="handle" id="handle" title="Drag up or down to move the controls; drag to the left or right edge to snap them into a side panel">
       <span class="grip" aria-hidden="true"></span>
-      <button id="dockUp" aria-label="Move controls up">▲</button>
-      <button id="dockDown" aria-label="Move controls down">▼</button>
-      <span class="snap" role="group" aria-label="Where the controls sit"><button data-side="left" title="Snap the controls to a left side panel" aria-label="Snap to left">◧ Left</button><button data-side="bottom" title="Dock the controls along the bottom" aria-label="Snap to bottom">▭</button><button data-side="right" title="Snap the controls to a right side panel" aria-label="Snap to right">Right ◨</button></span>
-      <label class="ctl" for="dockFade">FADE<input id="dockFade" type="range" min="0.15" max="1" step="0.05" value="1"></label>
+      <button id="dockUp" class="icon" aria-label="Move controls up"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 8l4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <button id="dockDown" class="icon" aria-label="Move controls down"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <span class="snap" role="group" aria-label="Where the controls sit"><button data-side="left" title="Snap the controls to a left side panel" aria-label="Snap to left">Left</button><button data-side="bottom" title="Dock the controls along the bottom" aria-label="Snap to bottom">Bottom</button><button data-side="right" title="Snap the controls to a right side panel" aria-label="Snap to right">Right</button></span>
+      <label class="ctl" for="dockFade">Fade<input id="dockFade" type="range" min="0.15" max="1" step="0.05" value="1"></label>
       <button id="autoFade" aria-pressed="true" title="Fade the controls while music plays and you are not using them">Auto-fade</button>
       <span class="spacer"></span>
-      <button id="dockHide">Hide controls</button>
+      <button id="dockHide">Hide</button>
     </div>
     <div class="row">
-      <button class="play" id="play">▶ Play</button>
-      <button id="recBtn" class="rec" title="Record what's on screen, with sound">● Record</button>
+      <button class="play" id="play">Play</button>
+      <button id="recBtn" class="rec" aria-pressed="false" title="Record what's on screen, with sound">Record</button>
       <select id="recShape" aria-label="Video shape">
         <option value="screen" selected>Video: as on screen</option><option value="16:9">Video: 16:9 widescreen</option>
         <option value="9:16">Video: 9:16 vertical</option><option value="1:1">Video: 1:1 square</option><option value="21:9">Video: 21:9 cinema</option>
@@ -196,9 +269,9 @@ select option{background:#16141e}
         <option value="third">Third eye · 852 Hz</option>
         <option value="crown">Crown · 963 Hz</option>
       </select>
-      <label class="ctl" for="toneVol" id="toneVolWrap" hidden>TONE<input id="toneVol" type="range" min="0" max="0.6" step="0.01" value="0.25"></label>
-      <label class="ctl" for="sens">FEEL<input id="sens" type="range" min="0.3" max="2.5" step="0.05" value="1"></label>
-      <label class="ctl" for="bpm">BREATH <span id="bpmv">6</span>/MIN<input id="bpm" type="range" min="3" max="12" step="0.5" value="6"></label>
+      <label class="ctl" for="toneVol" id="toneVolWrap" hidden>Tone<input id="toneVol" type="range" min="0" max="0.6" step="0.01" value="0.25"></label>
+      <label class="ctl" for="sens">Feel<input id="sens" type="range" min="0.3" max="2.5" step="0.05" value="1"></label>
+      <label class="ctl" for="bpm"><span>Breath <span id="bpmv">6</span>/min</span><input id="bpm" type="range" min="3" max="12" step="0.5" value="6"></label>
       <span class="spacer"></span>
       <button id="guide" aria-pressed="false">Breath cue</button>
       <button id="full">Fullscreen</button>
@@ -232,7 +305,7 @@ select option{background:#16141e}
         <option value="3">Air swirl</option><option value="4">Earth light rays</option><option value="5">Cosmic orb</option>
         <option value="6">Fire &amp; water vortex</option><option value="7">Gentle drift</option><option value="8">No motion (camera and beat only)</option>
       </select>
-      <label class="ctl" id="vidSoundWrap" hidden><input type="checkbox" id="vidSound"> VIDEO SOUND</label>
+      <label class="ctl" id="vidSoundWrap" hidden><input type="checkbox" id="vidSound"> Video sound</label>
       <select id="imgView" aria-label="How the image is shown">
         <option value="full" selected>Full image</option><option value="kal">Kaleidoscope mandala</option>
       </select>
@@ -267,7 +340,7 @@ select option{background:#16141e}
       <select id="aoEvery" aria-label="When the letter changes">
         <option value="1">Next letter every beat</option><option value="2" selected>Every 2 beats</option><option value="4">Every 4 beats</option><option value="8">Every 8 beats</option>
       </select>
-      <input id="aoWord" type="text" value="ETHER" maxlength="24" aria-label="Word to spell" hidden style="font:500 13px var(--mono);background:transparent;color:var(--fg);border:1px solid var(--line);border-radius:999px;padding:7px 12px;width:150px;text-transform:uppercase">
+      <input id="aoWord" type="text" value="ETHER" maxlength="24" aria-label="Word to spell" hidden style="font:500 14px var(--text);background:var(--fill);color:var(--fg);border:0;border-radius:999px;padding:8px 14px;width:150px;text-transform:uppercase">
       <span class="hint" id="aoInfo"></span>
     </div>
     <div class="row" id="jrnRow" hidden>
@@ -280,7 +353,7 @@ select option{background:#16141e}
       <span class="hint" id="jrnInfo"></span>
     </div>
     <div class="row" id="fasRow" hidden>
-      <label class="ctl" for="fasBright">BRIGHTNESS<input id="fasBright" type="range" min="0.5" max="4" step="0.05" value="1.8"></label>
+      <label class="ctl" for="fasBright">Brightness<input id="fasBright" type="range" min="0.5" max="4" step="0.05" value="1.8"></label>
     </div>
     <div class="row" id="sigRow" hidden>
       <select id="sigDir" aria-label="Direction the symbols move">
@@ -300,9 +373,9 @@ select option{background:#16141e}
     </div>
   </div>
 </div>
-<button class="showTab" id="showTab" hidden>▲ Controls</button>
+<button class="showTab" id="showTab" hidden>Controls</button>
 <div class="snapHint" id="snapHint" aria-hidden="true"></div>
-<button class="recPill" id="recPill" hidden aria-label="Stop recording"><span class="recDot"></span><span id="recTime">REC 0:00</span><span class="recStop">Stop</span></button>
+<button class="recPill" id="recPill" hidden aria-label="Stop recording"><span class="recDot"></span><span id="recTime">0:00</span><span class="recStop">Stop</span></button>
 <div class="recDlg" id="recDlg" hidden role="dialog" aria-modal="true" aria-labelledby="recTitle">
   <div class="recCard">
     <h3 id="recTitle">Your recording</h3>
@@ -386,12 +459,12 @@ async function play(){
   try{ if(ctx.state!=='running') await ctx.resume(); }catch(e){}
   if(t.sample) startSample();
   else { try{ await started; }catch(e){
-    playing=false; playBtn.textContent='▶ Play';
+    playing=false; playBtn.textContent='Play';playBtn.classList.remove('on');
     now.textContent = e&&e.name==='NotAllowedError' ? `Added ${t.name}. Tap Play to start it.` : `${t.name} could not be played here. Try an MP3, M4A or WAV file.`;
     return; } }
-  playing=true; playBtn.textContent='❚❚ Pause'; now.textContent=t.name;
+  playing=true; playBtn.textContent='Pause';playBtn.classList.add('on'); now.textContent=t.name;
 }
-function pause(){ stopAll(); playing=false; playBtn.textContent='▶ Play'; }
+function pause(){ stopAll(); playing=false; playBtn.textContent='Play';playBtn.classList.remove('on'); }
 
 const playBtn=document.getElementById('play'), now=document.getElementById('now'), tracksEl=document.getElementById('tracks');
 playBtn.onclick=()=>playing?pause():play();
@@ -489,7 +562,7 @@ const snapHint=document.getElementById('snapHint'),sideBtns=[...document.querySe
 function applySide(){const sd=DK.side==='left'||DK.side==='right'?DK.side:'bottom';DK.side=sd;
   dock.classList.toggle('side',sd!=='bottom');dock.classList.toggle('right',sd==='right');
   showTab.classList.toggle('left',sd==='left');showTab.classList.toggle('right',sd==='right');
-  showTab.textContent=sd==='left'?'▶ Controls':sd==='right'?'◀ Controls':'▲ Controls';
+  showTab.textContent='Controls';
   sideBtns.forEach(b=>b.setAttribute('aria-pressed',b.dataset.side===sd));placeDock();}
 sideBtns.forEach(b=>b.onclick=()=>{DK.side=b.dataset.side;applySide();saveDock();});
 applySide();
@@ -1180,7 +1253,7 @@ function drawSolids(t,B){
   for(let k=0;k<KP;k++){const q=proj(P[k*3],P[k*3+1],P[k*3+2],1),dep=.4+.6*(q[2]+1)/2;
     g.fillStyle=hsl(k%4,72,(.35+F.high*.35+(1-settle)*.4)*dep);const s=1.5*q[3];g.fillRect(q[0]-s/2,q[1]-s/2,s,s);}
   g.globalCompositeOperation='source-over';g.globalAlpha=.55+settle*.4;g.fillStyle=`hsl(${pal.h[1]},50%,78%)`;g.textAlign='center';
-  g.font='500 11px "IBM Plex Mono",ui-monospace,monospace';g.fillText(`${SOLIDS[SOL.cur].name} · ${SOLIDS[SOL.cur].el}`.toUpperCase().split('').join(String.fromCharCode(8202)),cx,cy+Sc*1.48);
+  g.font='500 13px -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif';g.fillText(`${SOLIDS[SOL.cur].name} · ${SOLIDS[SOL.cur].el}`,cx,cy+Sc*1.48);
   g.globalAlpha=1;g.textAlign='start';
 }
 
@@ -1730,13 +1803,13 @@ async function recStart(){
   REC.rec.ondataavailable=e=>{if(e.data&&e.data.size)REC.chunks.push(e.data);};
   REC.rec.onstop=()=>{vs.getTracks().forEach(t=>t.stop());recFinish();};
   REC.rec.start(1000);REC.on=true;REC.t0=performance.now();
-  recBtn.textContent='■ Stop';recBtn.setAttribute('aria-pressed','true');recPill.hidden=false;
-  REC.timer=setInterval(()=>{const s=(performance.now()-REC.t0)/1000;recTime.textContent=`REC ${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+  recBtn.textContent='Stop';recBtn.setAttribute('aria-pressed','true');recPill.hidden=false;
+  REC.timer=setInterval(()=>{const s=(performance.now()-REC.t0)/1000;recTime.textContent=`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
     if(performance.now()-REC.t0>REC_MAX)recStop();},250);
 }
 function recStop(){
   if(!REC.on)return;REC.on=false;clearInterval(REC.timer);
-  recBtn.textContent='● Record';recBtn.setAttribute('aria-pressed','false');recPill.hidden=true;
+  recBtn.textContent='Record';recBtn.setAttribute('aria-pressed','false');recPill.hidden=true;
   try{REC.rec.stop();}catch(e){recFinish();}
 }
 function recFinish(){
@@ -2209,18 +2282,18 @@ function drawStellar(t,B){
     if(show!=='pure'){let a=.92;if(sunP){const ds=Math.hypot(it.x-sunP[0],it.y-sunP[1]);a*=Math.max(0,Math.min(1,(ds-24)/40));}if(a>.02)labels.push([b.n.toUpperCase(),it.x,it.y+pr+(m<500?13:15),a,alignSet.has(b.n)]);}
   }
   g.globalCompositeOperation='source-over';g.textAlign='center';g.textBaseline='middle';
-  if(labels.length){g.font=`600 ${m<500?11:13}px "Bricolage Grotesque",sans-serif`;if('letterSpacing' in g)g.letterSpacing='1.5px';
+  if(labels.length){g.font=`600 ${m<500?11:13}px -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif`;if('letterSpacing' in g)g.letterSpacing='1.5px';
     for(const [s,x,y,a,hl] of labels){g.fillStyle=hl?`hsla(45,95%,72%,${a})`:`hsla(${hu},85%,76%,${a})`;g.fillText(s,x,y);}}
   // the clock and the camera distance, in the style of a star chart
   if(show!=='pure'){
     const ds=stDate(ST.sim),fs=m<500?12:14,by=H-(m<500?92:84);
-    g.font=`500 ${fs}px "IBM Plex Mono",monospace`;if('letterSpacing' in g)g.letterSpacing='1px';
+    g.font=`500 ${fs}px -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif`;if('letterSpacing' in g)g.letterSpacing='1px';
     const tw=g.measureText(ds).width+34;
     g.fillStyle='rgba(8,18,40,.55)';g.strokeStyle=`hsla(${hu},70%,62%,.6)`;g.lineWidth=1;g.beginPath();
     g.moveTo(W/2-tw/2+8,by-14);g.lineTo(W/2+tw/2-8,by-14);g.lineTo(W/2+tw/2,by);g.lineTo(W/2+tw/2-8,by+14);g.lineTo(W/2-tw/2+8,by+14);g.lineTo(W/2-tw/2,by);g.closePath();g.fill();g.stroke();
     g.fillStyle=`hsla(${hu},60%,92%,.92)`;g.fillText(ds,W/2,by+1);
-    if(alignText){g.font=`600 ${fs}px "Bricolage Grotesque",sans-serif`;g.fillStyle=`hsla(45,95%,70%,${.55+.4*B.v})`;g.fillText(alignText,W/2,by-30);}
-    const vr=D*m*.44/foc,au=soft?Math.pow(vr,1/.55):vr;g.save();g.translate(W-16,H/2);g.rotate(-Math.PI/2);g.font=`500 10px "IBM Plex Mono",monospace`;g.fillStyle=`hsla(${hu},60%,75%,.6)`;
+    if(alignText){g.font=`600 ${fs}px -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif`;g.fillStyle=`hsla(45,95%,70%,${.55+.4*B.v})`;g.fillText(alignText,W/2,by-30);}
+    const vr=D*m*.44/foc,au=soft?Math.pow(vr,1/.55):vr;g.save();g.translate(W-16,H/2);g.rotate(-Math.PI/2);g.font=`500 10px -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif`;g.fillStyle=`hsla(${hu},60%,75%,.6)`;
     g.fillText(`DISTANCE ${au<10?au.toFixed(2):au.toFixed(1)} AU`,0,0);g.restore();
     if('letterSpacing' in g)g.letterSpacing='0px';
   }
@@ -2253,6 +2326,7 @@ requestAnimationFrame(frame);
 </script>
 
 <script>
+document.querySelectorAll('input[type=range]').forEach(r=>{const u=()=>r.style.setProperty('--p',((r.value-r.min)/(r.max-r.min)*100)+'%');r.addEventListener('input',u);u();});
 if('serviceWorker' in navigator){addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 </script>
 </body>
