@@ -15,10 +15,10 @@
   - **Symbols:** a golden glyph vortex that flows inward, outward or breathes in and out, with a centre emblem that transforms every 30 seconds
   - **Solids:** the five Platonic solids morphing on the beat, each paired with its classical element
   - **Images:** Ether's elemental artwork, or your own images and videos, brought to life with cinematic motion. Waves crash, flames rise, rings ripple and vortices turn, never repeating
-  - **Stellar Alignment:** a live, 3D solar system that sits among the constellations. All eight planets and the dwarf planets move along their real orbits from NASA data, starting today. Let time flow at a day, a week, a month or a year each second, and watch for alignments: when planets line up with the Sun their orbits glow gold and a ripple rolls out. The camera drifts slowly and moves with your breath, the Sun pulses with the bass, and you can drag to turn the sky or pinch to zoom
+  - **Stellar Alignment:** a live 3D solar system among the constellations, with realistic painted planets, Saturn's and Uranus's rings, and the Moon. Pick any date from 1800 to 2050 to see where the planets really are that day, with a sky report: which planets meet in the sky, which line up with the Sun, planet parades, the Moon's phase, and whether each planet is in the evening or morning sky. Tap a planet to fly to it. Time can flow at a day, week, month or year each second; orbits glow gold when planets line up with the Sun; the camera breathes with you and the Sun pulses with the bass
 - **Chakra colours and tones.** Recolour everything in the seven chakra colours and play chakra tones from 396 Hz (Root) to 963 Hz (Crown). The tones breathe with the breath pace, and each one forms its own cymatic figure.
 - **Breath guide.** Set a breathing pace and turn on inhale and exhale cues for meditative sessions.
-- **Your controls, your way.** Drag the control panel up or down, fade it, let it auto-fade while music plays, or hide it for a clean full-screen view.
+- **Your controls, your way.** A small floating bar holds Play, the visual and its key setting; tap the sliders button for everything else. Drag the control panel up or down, fade it, let it auto-fade while music plays, or hide it for a clean full-screen view.
 
 ## Install it
 
