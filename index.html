@@ -61,7 +61,7 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:
 .breath.on{opacity:.6}
 
 /* the control sheet */
-.dock{position:fixed;left:0;right:0;bottom:0;padding-bottom:calc(14px + env(safe-area-inset-bottom,0px));transition:transform .5s var(--ease),opacity .5s;
+.dock{position:fixed;z-index:7;left:0;right:0;bottom:0;padding-bottom:calc(14px + env(safe-area-inset-bottom,0px));transition:transform .5s var(--ease),opacity .5s;
   padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:max(14px,env(safe-area-inset-right,0px));display:flex;justify-content:center}
 .panel{background:var(--glass);backdrop-filter:var(--material);-webkit-backdrop-filter:var(--material);border:.5px solid var(--line);border-radius:28px;
   padding:0 16px 16px;display:flex;flex-direction:column;gap:12px;width:min(840px,100%);box-sizing:border-box;
@@ -184,6 +184,12 @@ input[type=range]::-moz-range-thumb{width:22px;height:22px;border:0;border-radiu
 }
 
 /* compact bar */
+/* the open sheet never grows past the screen: it scrolls inside, with the top bar pinned so it can always be closed */
+.dock:not(.side) .panel{max-height:calc(100dvh - 32px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px) - var(--dy,0px));overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}
+.dock:not(.side) .panel::-webkit-scrollbar{display:none}
+.panel:not(.compact) .mini{position:sticky;top:0;z-index:3;margin:0 -16px;padding:14px 16px 10px;background:rgba(36,36,38,.94);backdrop-filter:var(--material);-webkit-backdrop-filter:var(--material);border-bottom:.5px solid var(--sep)}
+.dock.side .panel:not(.compact) .mini{margin:0 -16px}
+@media (max-width:560px){.panel:not(.compact) .mini{margin:0 -12px;padding:12px 12px 10px}}
 .mini{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-top:16px}
 .panel.compact{width:auto;max-width:100%;padding:8px;border-radius:30px;gap:0}
 .panel.compact>:not(.mini){display:none!important}
@@ -2126,7 +2132,7 @@ miniPlay.onclick=()=>playBtn.click();
 function syncPlay(){const on=playBtn.classList.contains('on');miniPlay.classList.toggle('on',on);miniPlay.setAttribute('aria-label',on?'Pause':'Play');}
 new MutationObserver(syncPlay).observe(playBtn,{attributes:true,childList:true});syncPlay();
 function setCompact(c){DK.compact=c;panel.classList.toggle('compact',c);moreBtn.setAttribute('aria-expanded',String(!c));moreBtn.setAttribute('aria-label',c?'More controls':'Fewer controls');placeDock();}
-moreBtn.onclick=()=>{setCompact(!panel.classList.contains('compact'));saveDock();wake();};
+moreBtn.onclick=()=>{setCompact(!panel.classList.contains('compact'));saveDock();wake();if(typeof stPlaceRep==='function')stPlaceRep();};
 setCompact(DK.compact!==false);
 
 /* ---------- Stellar Alignment: a live orrery of the solar system ---------- */
@@ -2282,7 +2288,12 @@ function stPickDate(v){if(!v)return;const [y,m,d]=v.split('-').map(Number),[hh,m
   ST.sim=new Date(y,m-1,d,hh,mm).getTime();stSpeed.value='pause';ST.rate=0;stDateIn.value=stDateMini.value=v;ST.sync=performance.now();stShowRep(true);}
 stDateIn.onchange=()=>stPickDate(stDateIn.value);stDateMini.onchange=()=>stPickDate(stDateMini.value);
 stTimeIn.onchange=()=>stPickDate(stYmd(ST.sim));
-function stShowRep(on){stRep.hidden=!on;stRepBtn.setAttribute('aria-pressed',on);ST.repT=0;}
+function stShowRep(on){stRep.hidden=!on;stRepBtn.setAttribute('aria-pressed',on);ST.repT=0;stPlaceRep();}
+function stPlaceRep(){ // keep the report in the space above the controls so it never covers them
+  if(stRep.hidden)return;const r=panel.getBoundingClientRect(),free=dock.classList.contains('side')||dock.classList.contains('away'),lim=free?innerHeight-16:r.top-12;
+  if(innerWidth<=560){stRep.style.bottom=(free?16:Math.max(16,innerHeight-r.top+12))+'px';stRep.style.maxHeight=Math.max(120,lim-96)+'px';}
+  else{stRep.style.bottom='';stRep.style.maxHeight=Math.max(140,lim-stRep.getBoundingClientRect().top)+'px';}}
+addEventListener('resize',stPlaceRep);
 stRepBtn.onclick=()=>stShowRep(stRep.hidden);
 document.getElementById('stRepClose').onclick=()=>stShowRep(false);
 
@@ -2482,7 +2493,7 @@ function drawStellar(t,B){
   const SF='-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif';
   if(labels.length){g.font=`600 ${m<500?11:13}px ${SF}`;if('letterSpacing' in g)g.letterSpacing='1.5px';
     for(const [s,x,y,a,hl] of labels){g.fillStyle=hl?`hsla(45,95%,72%,${a})`:`hsla(${hu},85%,76%,${a})`;g.fillText(s,x,y);}}
-  if(t-ST.repT>400){ST.repT=t;const r=stReport(bodies,moonG,jd);if(!stRep.hidden||!alignText)alignText=alignText||r;
+  if(t-ST.repT>400){ST.repT=t;stPlaceRep();const r=stReport(bodies,moonG,jd);if(!stRep.hidden||!alignText)alignText=alignText||r;
     stInfo.textContent=tt<8?'Tap a planet to fly to it · drag to turn · pinch to zoom':(alignText||'Pick a date to see the sky on that day');ST.lastText=alignText;}
   else alignText=alignText||ST.lastText||'';
   // the clock and the camera distance, in the style of a star chart
