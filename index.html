@@ -214,7 +214,7 @@ body:has(.panel:not(.compact)) .stRep{top:calc(170px + env(safe-area-inset-top,0
 .stRep td{padding:6px 8px 6px 0;color:var(--muted);vertical-align:top}
 .stRep tr+tr{border-top:.5px solid var(--sep)}
 .stRep .pill{padding:9px 12px;border-radius:12px;background:rgba(255,214,120,.14);color:#ffd88a;font-weight:600}
-.stRep .fine{font-size:11px;color:var(--faint)}
+.stRep .fine{font-size:11px;color:var(--faint)}.stRep .fine a{color:var(--muted)}
 .stRep .x{background:var(--fill);width:28px;height:28px;margin:0}
 .stBack{position:fixed;z-index:6;left:max(20px,env(safe-area-inset-left,0px));top:calc(84px + env(safe-area-inset-top,0px));background:var(--glass);backdrop-filter:var(--material);-webkit-backdrop-filter:var(--material);border:.5px solid var(--line);box-shadow:0 10px 30px rgba(0,0,0,.4)}
 @media (max-width:560px){
@@ -2135,6 +2135,7 @@ const stView=document.getElementById('stView'),stSpeed=document.getElementById('
   stRep=document.getElementById('stRep'),stRepTitle=document.getElementById('stRepTitle'),stRepBody=document.getElementById('stRepBody'),stRepBtn=document.getElementById('stRepBtn'),stBack=document.getElementById('stBack');
 const ST_D2R=Math.PI/180,ST_TAU=Math.PI*2,ST_ALN=4*ST_D2R,ST_MON=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
 const ST_SP={live:0,day:1,week:7,month:30.44,year:365.25,pause:0}; // days of sky time per second
+
 const ST={start:null,last:0,sim:Date.now(),rate:7,az:-.6,el:.8,D:0,zoom:1,manual:-1e9,ptrs:new Map(),tap:null,stars:null,cons:null,belts:null,orbits:null,okey:'',ripples:[],beatN:-1,aligned:'',infoT:0,repT:0,
   ca:1,sa:0,ce:1,se:0,focus:'Sun',fx:0,fy:0,fz:0,hits:[],spr:{},texQ:[],lut:null,sync:0};
 // the planets: NASA JPL Keplerian elements at J2000 [a AU, e, inclination, mean longitude, longitude of perihelion, node] and their change per century
@@ -2184,6 +2185,11 @@ const stYmd=ms=>{const d=new Date(ms);return `${d.getFullYear()}-${String(d.getM
 
 /* ---- painted surfaces: each world gets its own map, wrapped onto a turning sphere ---- */
 const ST_SS=320;
+// surface maps from Solar System Scope (www.solarsystemscope.com/textures, CC BY 4.0), based on NASA imagery
+const ST_MAPS={Sun:'sun',Mercury:'mercury',Venus:'venus',Earth:'earth',Moon:'moon',Mars:'mars',Jupiter:'jupiter',Saturn:'saturn',Uranus:'uranus',Neptune:'neptune'},ST_IMG={};
+function stLoadMaps(){for(const n in ST_MAPS){if(ST_IMG[n])continue;const im=new Image();ST_IMG[n]=im;im.decoding='async';im.onload=()=>{im.ok=true;};im.src='textures/'+ST_MAPS[n]+'.jpg';}}
+function stTexFrom(b,w,h){const im=ST_IMG[b.n];if(!(im&&im.ok))return stTex(b,w,h);
+  const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(im,0,0,w,h);return x.getImageData(0,0,w,h).data;}
 function stH(i,j,k){let h=Math.imul(i,374761393)+Math.imul(j,668265263)+Math.imul(k,1442695041)|0;h=Math.imul(h^h>>>13,1274126177);h^=h>>>16;return(h>>>0)/4294967296;}
 function stVN(x,y,z){const i=Math.floor(x),j=Math.floor(y),k=Math.floor(z),fx=x-i,fy=y-j,fz=z-k,u=fx*fx*(3-2*fx),v=fy*fy*(3-2*fy),w=fz*fz*(3-2*fz);
   const a=stH(i,j,k),b=stH(i+1,j,k),c=stH(i,j+1,k),d=stH(i+1,j+1,k),e=stH(i,j,k+1),f=stH(i+1,j,k+1),gg=stH(i,j+1,k+1),h=stH(i+1,j+1,k+1);
@@ -2229,23 +2235,28 @@ function stLut(){const S=ST_SS,r=S/2,map=new Float32Array(S*S).fill(-1),lon=new 
 function stSprite(b,t,pr){ // a turning, painted globe, re-drawn only while it is big enough to see
   let o=ST.spr[b.n];
   if(!o){if(ST.genT===t)return null;ST.genT=t;if(!ST.lut)stLut();const cv2=document.createElement('canvas');cv2.width=cv2.height=ST_SS;const cx2=cv2.getContext('2d');
-    o=ST.spr[b.n]={tex:stTex(b,128,64),tw:128,th:64,cv:cv2,cx:cx2,img:cx2.createImageData(ST_SS,ST_SS),last:-1e9,spin:-1};}
-  else if(pr>30&&o.tw<512&&ST.genT!==t){ST.genT=t;o.tex=stTex(b,512,256);o.tw=512;o.th=256;o.spin=-1;} // sharper surface for close-ups
+    const img=!!(ST_IMG[b.n]&&ST_IMG[b.n].ok),w=img?256:128;o=ST.spr[b.n]={tex:stTexFrom(b,w,w/2),tw:w,th:w/2,img,cv:cv2,cx:cx2,img2:cx2.createImageData(ST_SS,ST_SS),last:-1e9,spin:-1};}
+  else if(ST.genT!==t){const img=!!(ST_IMG[b.n]&&ST_IMG[b.n].ok),want=pr>30?(img?1024:512):(img?256:128);
+    if((img&&!o.img)||want>o.tw){ST.genT=t;o.tex=stTexFrom(b,want,want/2);o.tw=want;o.th=want/2;o.img=img;o.spin=-1;}} // the real map once it arrives, sharper for close-ups
   const TW=o.tw,TH=o.th,spin=t*.001*(b.sun?.03:Math.sign(b.rot||1)*.22/Math.sqrt(Math.abs(b.rot||1))),off=((Math.round(spin/ST_TAU*TW)%TW)+TW)%TW;
-  if(off!==o.spin&&t-o.last>(pr>40?50:pr>12?160:600)){o.spin=off;o.last=t;const {map,lon,lit,al}=ST.lut,d=o.img.data,tx=o.tex,N=ST_SS*ST_SS;
+  if(off!==o.spin&&t-o.last>(pr>40?50:pr>12?160:600)){o.spin=off;o.last=t;const {map,lon,lit,al}=ST.lut,d=o.img2.data,tx=o.tex,N=ST_SS*ST_SS;
     for(let k=0;k<N;k++){const q=k*4,rf=map[k];if(rf<0){d[q+3]=0;continue;}const c=(((lon[k]*TW)|0)+off)%TW;
       const s=(((rf*TH)|0)*TW+c)*4,f=b.sun?.5+.5*Math.pow(lit[k],.55):.8+.2*lit[k];d[q]=tx[s]*f;d[q+1]=tx[s+1]*f;d[q+2]=tx[s+2]*f;d[q+3]=255*al[k];}
-    o.cx.putImageData(o.img,0,0);}
+    o.cx.putImageData(o.img2,0,0);}
   return o.cv;}
 function stRng2(n,front,x,y,pr,bands){ // rings around a planet, drawn half behind it and half in front
   const len=Math.hypot(n[0],n[1])||1,u=[n[1]/len,-n[0]/len,0],v=[n[1]*u[2]-n[2]*u[1],n[2]*u[0]-n[0]*u[2],n[0]*u[1]-n[1]*u[0]];
   for(const [r0,r1,c,al] of bands){const rad=(r0+r1)/2;g.strokeStyle=`rgba(${c[0]},${c[1]},${c[2]},${al})`;g.lineWidth=Math.max(.5,(r1-r0)*pr);g.lineJoin='round';g.lineCap='butt';g.beginPath();let pv=false;
-    for(let i=0;i<=160;i++){const a=i/160*ST_TAU,cs=Math.cos(a)*rad,sn=Math.sin(a)*rad,wx=u[0]*cs+v[0]*sn,wy=u[1]*cs+v[1]*sn,wz=v[2]*sn;
+    const NP=pr>30?160:56;for(let i=0;i<=NP;i++){const a=i/NP*ST_TAU,cs=Math.cos(a)*rad,sn=Math.sin(a)*rad,wx=u[0]*cs+v[0]*sn,wy=u[1]*cs+v[1]*sn,wz=v[2]*sn;
       const x1=wx*ST.ca+wy*ST.sa,y1=-wx*ST.sa+wy*ST.ca,Y=y1*ST.se+wz*ST.ce,Zc=y1*ST.ce-wz*ST.se,ok=front?Zc<=0:Zc>0;
       if(ok){const X=x+x1*pr,YY=y-Y*pr;pv?g.lineTo(X,YY):g.moveTo(X,YY);}pv=ok;}
     g.stroke();}}
-const ST_RINGS={saturn:{n:[.0858,.4628,.8823],b:[[1.24,1.46,[120,104,84],.35],[1.46,1.53,[180,160,124],.6],[1.53,1.76,[230,212,170],.9],[1.76,1.94,[214,194,152],.8],[1.98,2.2,[198,178,138],.65],[2.2,2.27,[160,142,112],.4]]},
-  uranus:{n:[-.217,-.941,-.259],b:[[1.95,2.02,[170,185,200],.45]]}};
+const ST_RP={"saturn":{"inner":0.49,"p":[[14,12,48,0.075],[19,15,49,0.211],[28,23,50,0.421],[36,33,54,0.535],[42,39,56,0.581],[48,43,58,0.626],[53,47,61,0.682],[54,48,62,0.707],[55,49,63,0.717],[56,51,64,0.717],[57,52,64,0.724],[58,53,65,0.729],[58,53,65,0.725],[55,51,63,0.703],[55,51,64,0.7],[58,54,65,0.721],[62,58,67,0.741],[77,71,76,0.772],[92,85,86,0.787],[102,95,92,0.799],[102,95,92,0.798],[102,95,93,0.798],[102,95,94,0.799],[106,99,98,0.799],[117,109,105,0.8],[126,116,110,0.8],[129,119,114,0.8],[128,119,117,0.8],[125,115,112,0.8],[127,116,107,0.8],[130,118,107,0.8],[133,123,111,0.8],[134,125,115,0.8],[135,126,119,0.8],[130,120,112,0.8],[124,115,106,0.8],[124,115,107,0.8],[124,115,109,0.8],[123,114,107,0.8],[130,122,116,0.8],[121,116,113,0.793],[90,87,90,0.707],[56,56,63,0.576],[54,56,63,0.6],[67,67,73,0.689],[82,80,84,0.77],[92,89,91,0.789],[94,90,89,0.789],[90,87,85,0.78],[90,86,82,0.773],[90,86,82,0.767],[90,85,82,0.768],[89,84,82,0.767],[90,86,83,0.769],[91,86,83,0.767],[83,80,76,0.735],[83,80,77,0.74],[93,91,87,0.759],[84,83,88,0.73],[56,57,75,0.435],[26,26,61,0.164],[16,15,56,0.06],[16,15,53,0.084],[15,16,52,0.05]]},"uranus":{"inner":0.478,"p":[[207,198,129,0.149],[206,201,135,0.471],[208,210,142,0.743],[214,220,148,0.8],[223,222,157,0.8],[232,219,173,0.8],[238,218,184,0.8],[243,218,189,0.8],[247,218,196,0.8],[246,213,203,0.8],[243,208,205,0.8],[238,203,211,0.8],[231,203,216,0.8],[223,199,215,0.8],[218,193,210,0.8],[213,191,207,0.8],[201,191,205,0.8],[193,190,202,0.8],[190,190,198,0.8],[189,189,196,0.8],[185,189,192,0.8],[181,185,185,0.8],[172,175,174,0.8],[165,168,170,0.8],[159,167,172,0.8],[158,162,164,0.8],[153,153,148,0.8],[153,163,158,0.8],[150,167,164,0.8],[138,150,147,0.8],[131,143,139,0.8],[134,150,143,0.8],[120,133,127,0.8],[111,119,113,0.8],[108,121,114,0.8],[105,124,119,0.8],[101,130,122,0.8],[93,115,106,0.8],[96,113,101,0.8],[98,114,97,0.8],[92,108,93,0.8],[74,88,81,0.8],[68,83,80,0.8],[61,79,75,0.8],[56,75,70,0.8],[52,72,63,0.8],[54,70,61,0.8],[41,53,46,0.8],[67,78,78,0.8],[120,132,125,0.8],[110,120,112,0.8],[45,58,42,0.8],[21,41,25,0.8],[17,40,18,0.8],[11,35,16,0.8],[9,32,17,0.8],[8,27,14,0.8],[5,23,6,0.8],[1,18,2,0.8],[0,12,1,0.8],[0,6,0,0.8],[0,2,0,0.8],[0,0,0,0.795],[0,0,0,0.617]]}};
+function stBands(p,rOut,gain,n){const rIn=rOut*p.inner,P=p.p,k=P.length/n,out=[];
+  for(let i=0;i<n;i++){let r=0,gg=0,bb=0,a=0;const lo=Math.floor(i*k),hi=Math.max(lo+1,Math.floor((i+1)*k));for(let j=lo;j<hi;j++){r+=P[j][0];gg+=P[j][1];bb+=P[j][2];a+=P[j][3];}const c=hi-lo;
+    if(a/c>.01)out.push([rIn+(rOut-rIn)*i/n,rIn+(rOut-rIn)*(i+1)/n+.004,[r/c|0,gg/c|0,bb/c|0],Math.min(1,a/c*gain)]);}return out;}
+const ST_RINGS={saturn:{n:[.0858,.4628,.8823],hi:stBands(ST_RP.saturn,2.27,1.1,64),lo:stBands(ST_RP.saturn,2.27,1.1,10)},
+  uranus:{n:[-.217,-.941,-.259],hi:stBands(ST_RP.uranus,2.05,.22,48).map(b=>{const c=b[2],m=(c[0]+c[1]+c[2])/3;b[2]=[m*.8+40|0,m*.8+44|0,m*.8+52|0];return b;}),lo:[[1.9,2.05,[150,155,165],.18]]}};
 function stLight(w){ // direction to the Sun as the camera sees it
   const L=Math.hypot(w[0],w[1],w[2])||1,x=-w[0]/L,y=-w[1]/L,z=-w[2]/L,x1=x*ST.ca+y*ST.sa,y1=-x*ST.sa+y*ST.ca;return[x1,y1*ST.se+z*ST.ce,y1*ST.ce-z*ST.se];}
 
@@ -2263,7 +2274,7 @@ function stSky(){
 }
 
 /* ---- choosing a date, and centring on a world ---- */
-function stSetFocus(n){ST.focus=n;stFocusSel.value=n;ST.zoom=1;ST.manual=-1e9;stBack.hidden=n==='Sun';}
+function stSetFocus(n){ST.focus=n;ST.focusT=performance.now();stFocusSel.value=n;ST.zoom=1;ST.manual=-1e9;stBack.hidden=n==='Sun';}
 stFocusSel.innerHTML=['Sun',...ST_PL.slice(0,3).map(b=>b.n),'Moon',...ST_ALL.slice(3).map(b=>b.n)].map(n=>`<option value="${n}">${n==='Sun'?'Whole solar system':'Centre on '+n}</option>`).join('');
 stFocusSel.onchange=()=>stSetFocus(stFocusSel.value);
 stBack.onclick=()=>stSetFocus('Sun');
@@ -2320,7 +2331,7 @@ function stReport(bodies,moonG,jd){
   if(grp.length>=4)h.push(`<p class="pill">Planet parade: ${grp.length} planets ${grp===eve?'after sunset':'before sunrise'} (${grp.join(', ')})</p>`);
   if(!best.length&&!lineup.length)h.push('<p>No close alignments on this date. The planets are spread around the sky.</p>');
   h.push(`<h3>Where each world is</h3><table>${W.map(w=>`<tr><th>${w.n}</th><td>${w.where}</td><td>${w.moon?`${phase}, ${Math.round(illum*100)}% lit`:w.vis}${w.n==='Uranus'?' · binoculars':w.n==='Neptune'?' · telescope':''}</td></tr>`).join('')}</table>`);
-  h.push('<p class="fine">Positions from NASA JPL orbital elements, accurate to within a degree from 1800 to 2050. Constellations follow the zodiac along the ecliptic.</p>');
+  h.push('<p class="fine">Positions from NASA JPL orbital elements, accurate to within a degree from 1800 to 2050. Constellations follow the zodiac along the ecliptic. Planet maps by <a href="https://www.solarsystemscope.com/textures/" target="_blank" rel="noopener">Solar System Scope</a> (CC BY 4.0), based on NASA imagery.</p>');
   const d=new Date(ST.sim);stRepTitle.textContent=d.toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'long',day:'numeric'})+' · '+d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
   stRepBody.innerHTML=h.join('');
   return best.length?`${best[0][1].n} and ${best[0][2].n} ${deg(best[0][0])} apart`:lineup.length?lineup[0].split(':')[0]:'';
@@ -2344,7 +2355,7 @@ function stBody(x,y,pr,b,L,hl,B,t){
   const gr0=pr*2.4+5,q=g.createRadialGradient(x,y,0,x,y,gr0);q.addColorStop(0,rgb(1,(.2+F.high*.35)*(.35+.65*lit)));q.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=q;g.fillRect(x-gr0,y-gr0,gr0*2,gr0*2);
   g.globalCompositeOperation='source-over';
   const ring=b.ring&&ST_RINGS[b.ring];
-  if(ring&&pr>2.5)stRng2(ring.n,false,x,y,pr,ring.b);
+  if(ring&&pr>2.5)stRng2(ring.n,false,x,y,pr,pr>14?ring.hi:ring.lo);
   const sp=pr>=2.6?stSprite(b,t,pr):null;
   if(!sp){g.fillStyle=rgb(1.1,1);g.beginPath();g.arc(x,y,Math.max(1,pr),0,ST_TAU);g.fill();}
   else{
@@ -2355,13 +2366,13 @@ function stBody(x,y,pr,b,L,hl,B,t){
     g.save();g.beginPath();g.arc(x,y,pr+.6,0,ST_TAU);g.clip();g.fillStyle=sh;g.fillRect(x-pr-1,y-pr-1,pr*2+2,pr*2+2);g.restore();
     if(b.atm&&pr>4){const a=b.atm;g.globalCompositeOperation='lighter';g.strokeStyle=`rgba(${a[0]},${a[1]},${a[2]},${.28*(.3+.7*lit)})`;g.lineWidth=Math.max(1,pr*.07);g.beginPath();g.arc(x,y,pr*1.02,0,ST_TAU);g.stroke();g.globalCompositeOperation='source-over';}
   }
-  if(ring&&pr>2.5)stRng2(ring.n,true,x,y,pr,ring.b);
+  if(ring&&pr>2.5)stRng2(ring.n,true,x,y,pr,pr>14?ring.hi:ring.lo);
   if(hl){g.strokeStyle=`hsla(45,95%,68%,${.35+.45*B.v})`;g.lineWidth=1.3;g.beginPath();g.arc(x,y,pr+4+3*B.v,0,ST_TAU);g.stroke();}
 }
 
 function drawStellar(t,B){
   if(!ST.stars)stSky();
-  if(ST.start===null){ST.start=t;ST.last=t;ST.D=0;ST.ripples=[];cv.style.touchAction='none';}
+  if(ST.start===null){ST.start=t;ST.last=t;ST.D=0;ST.ripples=[];cv.style.touchAction='none';stLoadMaps();}
   const dt=Math.min(.05,Math.max(0,(t-ST.last)/1000));ST.last=t;const tt=(t-ST.start)/1000;
   // sky time
   const sp=stSpeed.value;
@@ -2386,7 +2397,8 @@ function drawStellar(t,B){
   else if(v==='edge'){elT=.09;RT=outR*.85;ST.az+=dt*.015*slow;}
   else if(v==='inner'){elT=.8;RT=inR;ST.az+=dt*.02*slow;}
   else{const z=.5-.5*Math.cos(tt/(120/slow)*ST_TAU);RT=Math.exp(Math.log(outR)*(1-z)+Math.log(inR*1.5)*z);elT=.82-.44*Math.cos(tt/(80/slow)*ST_TAU+.6);ST.az+=dt*.025*slow;}
-  const k1=Math.min(1,dt*1.6);ST.fx+=(tgt[0]-ST.fx)*k1;ST.fy+=(tgt[1]-ST.fy)*k1;ST.fz+=(tgt[2]-ST.fz)*k1;
+  // glide to a world, then stay locked on it
+  const k1=performance.now()-(ST.focusT||0)>1800?1:Math.min(1,dt*2.4);ST.fx+=(tgt[0]-ST.fx)*k1;ST.fy+=(tgt[1]-ST.fy)*k1;ST.fz+=(tgt[2]-ST.fz)*k1;
   const manual=performance.now()-ST.manual<9000;
   if(!manual)ST.el+=(elT-ST.el)*Math.min(1,dt*.35);
   const Dt=Math.max(ST.focus==='Sun'?sunW*7:.02,fit(RT)*ST.zoom*(1-.06*(B.v-.5))); // breathe in, drift closer; breathe out, drift away
