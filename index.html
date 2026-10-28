@@ -204,7 +204,20 @@ input[type=range]::-moz-range-thumb{width:22px;height:22px;border:0;border-radiu
 #moreBtn[aria-expanded="true"] circle{fill:var(--fg)}
 #play,.row>.seg[aria-label="Visual mode"]{display:none!important}
 .dock.side .panel.compact{width:auto;height:auto;align-self:flex-start}
-body:not(.m-stellar) .stOnly,body:not(.m-stellar) .stRep,body:not(.m-stellar) .stBack{display:none!important}
+body:not(.m-stellar) .stOnly,body:not(.m-stellar) .stRep,body:not(.m-stellar) .stBack,body:not(.m-stellar) .stTopDate,body:not(.m-stellar) .stTimePop{display:none!important}
+.stTopDate{position:fixed;z-index:6;left:50%;transform:translateX(-50%);top:110px;display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 14px 0 16px;
+  font:500 14px/1 var(--text);letter-spacing:.06em;font-variant-numeric:tabular-nums;color:#e8efff;background:rgba(8,18,40,.6);border:1px solid rgba(110,160,240,.55);border-radius:10px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.stTopDate:hover{background:rgba(20,36,70,.75)}
+.stTopDate svg{width:12px;height:12px;opacity:.8;transition:transform .2s}
+.stTopDate[aria-expanded="true"] svg{transform:rotate(180deg)}
+.stTimePop{position:fixed;z-index:8;left:50%;transform:translateX(-50%);top:150px;width:min(380px,calc(100vw - 24px));box-sizing:border-box;padding:14px;border-radius:22px;
+  background:var(--glass-strong);backdrop-filter:var(--material);-webkit-backdrop-filter:var(--material);border:.5px solid var(--line);box-shadow:0 20px 60px rgba(0,0,0,.55);display:flex;flex-direction:column;gap:10px}
+.stTimePop .tpRow{display:flex;gap:10px}.stTimePop .tpRow label{flex:1;display:flex;flex-direction:column;gap:5px;font:500 12px var(--text);color:var(--muted)}
+.stTimePop .tpRow input{width:100%}
+.stTimePop .tpLbl{margin:2px 0 0;font:500 12px var(--text);color:var(--muted)}
+.stTimePop .seg{flex-wrap:nowrap}.stTimePop .seg button{flex:1 1 0;padding:7px 4px;font-size:13px}
+.stTimePop .tpSteps{display:flex;gap:8px}.stTimePop .tpSteps button{flex:1;padding:9px 6px;font-size:13px}
+.stTimePop .tpLive{font-size:13px}
 body:has(.panel.compact) .meters{display:none}
 input[type=date],input[type=time]{-webkit-appearance:none;appearance:none;font:500 14px/1.2 var(--text);color:var(--fg);background:var(--fill);border:0;border-radius:999px;padding:9px 14px;min-height:40px;box-sizing:border-box;color-scheme:dark}
 input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-calendar-picker-indicator{filter:invert(.85);cursor:pointer}
@@ -405,7 +418,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
       <label class="ctl">Time<input type="time" id="stTime" value="21:00"></label>
       <button id="stNow">↺ Now</button>
       <select id="stFocus" aria-label="Centre the view on"></select>
-      <select id="stSpeed" aria-label="How fast time flows"><option value="live">Real time</option><option value="day">A day each second</option><option value="week" selected>A week each second</option><option value="month">A month each second</option><option value="year">A year each second</option><option value="pause">Pause time</option></select>
+<select id="stSpeed" aria-label="How fast time flows"><option value="live">Real time</option><option value="hour" selected>An hour each second</option><option value="day">A day each second</option><option value="week">A week each second</option><option value="month">A month each second</option><option value="year">A year each second</option><option value="pause">Pause time</option></select>
       <select id="stView" aria-label="Camera"><option value="drift" selected>Cinematic drift</option><option value="above">From above</option><option value="edge">Along the ecliptic</option><option value="inner">Inner planets</option></select>
       <select id="stScale" aria-label="Distances"><option value="soft" selected>Harmonic distances</option><option value="true">True distances</option></select>
       <div class="seg" role="group" aria-label="Show in the sky"><button data-st="far" aria-pressed="true">Distant stars</button><button data-st="cons" aria-pressed="true">Constellations</button><button data-st="orbits" aria-pressed="true">Orbits</button><button data-st="grid" aria-pressed="true">Grid</button><button data-st="labels" aria-pressed="true">Labels</button></div>
@@ -453,6 +466,14 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 </div>
 <button class="showTab" id="showTab" hidden>Controls</button>
 <aside class="stRep" id="stRep" hidden aria-live="polite"><div class="stRepHead"><h2 id="stRepTitle">Sky report</h2><button class="x" id="stRepClose" aria-label="Close the sky report">×</button></div><div id="stRepBody"></div></aside>
+<button class="stTopDate" id="stTopDate" aria-haspopup="dialog" aria-expanded="false" aria-label="Change the date and how fast time flows"><span id="stTopDateTxt"></span><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+<div class="stTimePop" id="stTimePop" role="dialog" aria-label="Date and time flow" hidden>
+  <div class="tpRow"><label>Date<input type="date" id="stPopDate" min="1800-01-01" max="2050-12-31"></label><label>Time<input type="time" id="stPopTime" value="21:00"></label></div>
+  <p class="tpLbl">Time flows, each second</p>
+  <div class="seg" id="stFlow" role="group" aria-label="How fast time flows"><button data-sp="pause" aria-label="Pause time">❚❚</button><button data-sp="hour">Hour</button><button data-sp="day">Day</button><button data-sp="week">Week</button><button data-sp="month">Month</button><button data-sp="year">Year</button></div>
+  <div class="tpSteps"><button id="stStepBack">‹ 1 hour</button><button id="stPopNow">Now</button><button id="stStepFwd">1 hour ›</button></div>
+  <button class="tpLive" id="stPopLive" aria-pressed="false">Real time</button>
+</div>
 <button class="stBack" id="stBack" hidden>‹ Whole solar system</button>
 <div class="snapHint" id="snapHint" aria-hidden="true"></div>
 <button class="recPill" id="recPill" hidden aria-label="Stop recording"><span class="recDot"></span><span id="recTime">0:00</span><span class="recStop">Stop</span></button>
@@ -2168,9 +2189,9 @@ const stView=document.getElementById('stView'),stSpeed=document.getElementById('
   stDateIn=document.getElementById('stDate'),stTimeIn=document.getElementById('stTime'),stDateMini=document.getElementById('stDateMini'),stFocusSel=document.getElementById('stFocus'),
   stRep=document.getElementById('stRep'),stRepTitle=document.getElementById('stRepTitle'),stRepBody=document.getElementById('stRepBody'),stRepBtn=document.getElementById('stRepBtn'),stBack=document.getElementById('stBack');
 const ST_D2R=Math.PI/180,ST_TAU=Math.PI*2,ST_ALN=4*ST_D2R,ST_MON=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
-const ST_SP={live:0,day:1,week:7,month:30.44,year:365.25,pause:0}; // days of sky time per second
+const ST_SP={live:0,hour:1/24,day:1,week:7,month:30.44,year:365.25,pause:0}; // days of sky time per second
 
-const ST={start:null,last:0,sim:Date.now(),rate:7,az:-.6,el:.8,D:0,zoom:1,manual:-1e9,ptrs:new Map(),tap:null,stars:null,cons:null,belts:null,orbits:null,okey:'',ripples:[],beatN:-1,aligned:'',infoT:0,repT:0,
+const ST={start:null,last:0,sim:Date.now(),rate:1/24,az:-.6,el:.8,D:0,zoom:1,manual:-1e9,ptrs:new Map(),tap:null,stars:null,cons:null,belts:null,orbits:null,okey:'',ripples:[],beatN:-1,aligned:'',infoT:0,repT:0,
   ca:1,sa:0,ce:1,se:0,focus:'Sun',fx:0,fy:0,fz:0,hits:[],spr:{},texQ:[],lut:null,sync:0};
 // the planets: NASA JPL Keplerian elements at J2000 [a AU, e, inclination, mean longitude, longitude of perihelion, node] and their change per century
 // s: drawn size, rot: days per turn (negative turns backwards), tex: surface painter
@@ -2327,6 +2348,28 @@ stFocusSel.onchange=()=>stSetFocus(stFocusSel.value);
 stBack.onclick=()=>stSetFocus('Sun');
 function stPickDate(v){if(!v)return;const [y,m,d]=v.split('-').map(Number),[hh,mm]=(stTimeIn.value||'21:00').split(':').map(Number);
   ST.sim=new Date(y,m-1,d,hh,mm).getTime();stSpeed.value='pause';ST.rate=0;stDateIn.value=stDateMini.value=v;ST.sync=performance.now();stShowRep(true);}
+
+/* ---- the time panel: tap the date at the top to change it, step through time, or set how fast it flows ---- */
+const stTopDate=document.getElementById('stTopDate'),stTopDateTxt=document.getElementById('stTopDateTxt'),stTimePop=document.getElementById('stTimePop'),stPopDate=document.getElementById('stPopDate'),stPopTime=document.getElementById('stPopTime'),
+  stFlow=[...document.querySelectorAll('[data-sp]')],stStepBack=document.getElementById('stStepBack'),stStepFwd=document.getElementById('stStepFwd'),stPopLive=document.getElementById('stPopLive');
+const ST_UNIT={hour:'1 hour',day:'1 day',week:'1 week',month:'1 month',year:'1 year'};
+function stSyncFlow(){const v=stSpeed.value;if(ST_UNIT[v])ST.unit=v;const u=ST.unit||'hour';
+  stFlow.forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.sp===v)));stPopLive.setAttribute('aria-pressed',String(v==='live'));
+  stStepBack.textContent='‹ '+ST_UNIT[u];stStepFwd.textContent=ST_UNIT[u]+' ›';}
+function stOpenTime(on){stTimePop.hidden=!on;stTopDate.setAttribute('aria-expanded',String(on));if(on){const d=new Date(ST.sim);stPopDate.value=stYmd(ST.sim);stPopTime.value=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');stSyncFlow();}}
+stTopDate.onclick=e=>{e.stopPropagation();stOpenTime(stTimePop.hidden);};
+document.addEventListener('pointerdown',e=>{if(!stTimePop.hidden&&!stTimePop.contains(e.target)&&!stTopDate.contains(e.target))stOpenTime(false);},true);
+stFlow.forEach(b=>b.onclick=()=>{stSpeed.value=b.dataset.sp;if(b.dataset.sp==='pause')ST.rate=0;stSyncFlow();});
+stPopLive.onclick=()=>{stSpeed.value=stSpeed.value==='live'?(ST.unit||'hour'):'live';stSyncFlow();};
+stSpeed.addEventListener('change',()=>{if(stSpeed.value==='pause')ST.rate=0;stSyncFlow();});
+function stStep(dir){const d=new Date(ST.sim),u=ST.unit||'hour';
+  if(u==='hour')d.setHours(d.getHours()+dir);else if(u==='day')d.setDate(d.getDate()+dir);else if(u==='week')d.setDate(d.getDate()+7*dir);else{const day=d.getDate();d.setDate(1);if(u==='month')d.setMonth(d.getMonth()+dir);else d.setFullYear(d.getFullYear()+dir);d.setDate(Math.min(day,new Date(d.getFullYear(),d.getMonth()+1,0).getDate()));} // Oct 31 + 1 month = Nov 30
+  ST.sim=Math.max(new Date(1800,0,1).getTime(),Math.min(new Date(2050,11,31,23,59).getTime(),d.getTime()));stSpeed.value='pause';ST.rate=0;ST.sync=0;stSyncFlow();stOpenTime(true);}
+stStepBack.onclick=()=>stStep(-1);stStepFwd.onclick=()=>stStep(1);
+document.getElementById('stPopNow').onclick=()=>{ST.sim=Date.now();ST.sync=0;stOpenTime(true);};
+stPopDate.onchange=()=>{stTimeIn.value=stPopTime.value||'21:00';stPickDate(stPopDate.value);stOpenTime(true);};
+stPopTime.onchange=()=>{stTimeIn.value=stPopTime.value;stPickDate(stPopDate.value||stYmd(ST.sim));stOpenTime(true);};
+stSyncFlow();
 stDateIn.onchange=()=>stPickDate(stDateIn.value);stDateMini.onchange=()=>stPickDate(stDateMini.value);
 stTimeIn.onchange=()=>stPickDate(stYmd(ST.sim));
 function stShowRep(on){stRep.hidden=!on;stRepBtn.setAttribute('aria-pressed',on);ST.repT=0;stPlaceRep();}
@@ -2462,7 +2505,7 @@ function drawStellar(t,B){
   const sp=stSpeed.value;
   if(sp==='live'){ST.sim=Date.now();ST.rate=0;}else{ST.rate+=(ST_SP[sp]-ST.rate)*Math.min(1,dt*1.2);ST.sim+=ST.rate*86400000*dt;}
   const jd=ST.sim/86400000+2440587.5,T=(jd-2451545)/36525,yr=2000+(jd-2451545)/365.25;
-  if(performance.now()-ST.sync>600&&document.activeElement!==stDateIn&&document.activeElement!==stDateMini){ST.sync=performance.now();const v=stYmd(ST.sim);if(stDateIn.value!==v)stDateIn.value=v;if(stDateMini.value!==v)stDateMini.value=v;}
+  if(performance.now()-ST.sync>600&&document.activeElement!==stDateIn&&document.activeElement!==stDateMini&&document.activeElement!==stPopDate&&document.activeElement!==stPopTime){ST.sync=performance.now();const v=stYmd(ST.sim);if(!stTimePop.hidden){if(stPopDate.value!==v)stPopDate.value=v;const dd=new Date(ST.sim),tv=String(dd.getHours()).padStart(2,'0')+':'+String(dd.getMinutes()).padStart(2,'0');if(stPopTime.value!==tv)stPopTime.value=tv;}if(stDateIn.value!==v)stDateIn.value=v;if(stDateMini.value!==v)stDateMini.value=v;}
   const soft=stScale.value!=='true',S=p=>{if(!soft)return p;const r=Math.hypot(p[0],p[1],p[2])||1e-9,f=Math.pow(r,.55)/r;return[p[0]*f,p[1]*f,p[2]*f];};
   const sunW=soft?.17:.11,bodyW=soft?.075:.055,O=ST_OPT,hu=pal.tint?pal.h[0]:212;
   const okey=(soft?'s':'t')+Math.floor(yr/4);
@@ -2574,14 +2617,16 @@ function drawStellar(t,B){
     stInfo.textContent=tt<8?'Tap a planet to fly to it · drag to turn · pinch to zoom':(alignText||'Pick a date to see the sky on that day');ST.lastText=alignText;}
   else alignText=alignText||ST.lastText||'';
   // the clock and the camera distance, in the style of a star chart
+  if(!O.labels&&!stTopDate.hidden){stTopDate.hidden=true;stOpenTime(false);}
   if(O.labels){
     if(!ST.topPad||ST.topW!==W){ST.topW=W;ST.topPad=parseFloat(getComputedStyle(document.querySelector('.top')).paddingTop)||18;}
     const ds=stFmt(ST.sim),fs=m<500?12:14,by=ST.topPad+(W>=900?22:(m<500?96:100));
     g.font=`500 ${fs}px ${SF}`;if('letterSpacing' in g)g.letterSpacing='1px';
-    const tw=g.measureText(ds).width+34;
-    g.fillStyle='rgba(8,18,40,.55)';g.strokeStyle=`hsla(${hu},70%,62%,.6)`;g.lineWidth=1;g.beginPath();
+    const tw=g.measureText(ds).width+34,tTop=Math.round(by-16)+'px';if(stTopDate.style.top!==tTop)stTopDate.style.top=tTop;if(stTopDateTxt.textContent!==ds)stTopDateTxt.textContent=ds;stTopDate.hidden=false;
+    const pTop=Math.round(by+(alignText?48:24))+'px';if(stTimePop.style.top!==pTop)stTimePop.style.top=pTop;
+    if(REC.on){g.fillStyle='rgba(8,18,40,.55)';g.strokeStyle=`hsla(${hu},70%,62%,.6)`;g.lineWidth=1;g.beginPath();
     g.moveTo(W/2-tw/2+8,by-14);g.lineTo(W/2+tw/2-8,by-14);g.lineTo(W/2+tw/2,by);g.lineTo(W/2+tw/2-8,by+14);g.lineTo(W/2-tw/2+8,by+14);g.lineTo(W/2-tw/2,by);g.closePath();g.fill();g.stroke();
-    g.fillStyle=`hsla(${hu},60%,92%,.92)`;g.fillText(ds,W/2,by+1);
+    g.fillStyle=`hsla(${hu},60%,92%,.92)`;g.fillText(ds,W/2,by+1);}
     if(alignText){g.font=`600 ${fs}px ${SF}`;if('letterSpacing' in g)g.letterSpacing='0px';g.fillStyle=`hsla(45,95%,70%,${.55+.4*B.v})`;g.fillText(alignText,W/2,by+30);}
     const vr=D*m*.44/foc,au=soft?Math.pow(vr,1/.55):vr;g.save();g.translate(W-16,H/2);g.rotate(-Math.PI/2);g.font=`500 10px ${SF}`;if('letterSpacing' in g)g.letterSpacing='1px';g.fillStyle=`hsla(${hu},60%,75%,.6)`;
     g.fillText(`DISTANCE ${au<10?au.toFixed(2):au.toFixed(1)} AU`,0,0);g.restore();
