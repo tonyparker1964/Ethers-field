@@ -2197,8 +2197,11 @@ const stYmd=ms=>{const d=new Date(ms);return `${d.getFullYear()}-${String(d.getM
 /* ---- painted surfaces: each world gets its own map, wrapped onto a turning sphere ---- */
 const ST_SS=320;
 // surface maps from Solar System Scope (www.solarsystemscope.com/textures, CC BY 4.0), based on NASA imagery
-const ST_MAPS={Sun:'sun',Mercury:'mercury',Venus:'venus',Earth:'earth',Moon:'moon',Mars:'mars',Jupiter:'jupiter',Saturn:'saturn',Uranus:'uranus',Neptune:'neptune'},ST_IMG={};
-function stLoadMaps(){for(const n in ST_MAPS){if(ST_IMG[n])continue;const im=new Image();ST_IMG[n]=im;im.decoding='async';im.onload=()=>{im.ok=true;};im.src='textures/'+ST_MAPS[n]+'.jpg';}}
+const ST_MAPS={Moon:'moon'},ST_IMG={};
+// Ether's own planet portraits: one face per world, shaded by the Sun as it moves
+const ST_FACES=['Sun','Mercury','Venus','Earth','Mars','Jupiter','Saturn','Uranus','Neptune','Pluto'],ST_FACE={};
+function stLoadMaps(){for(const n in ST_MAPS){if(ST_IMG[n])continue;const im=new Image();ST_IMG[n]=im;im.decoding='async';im.onload=()=>{im.ok=true;};im.src='textures/'+ST_MAPS[n]+'.jpg';}
+  for(const n of ST_FACES){if(ST_FACE[n])continue;const im=new Image();ST_FACE[n]=im;im.decoding='async';im.onload=()=>{im.ok=true;};im.src='textures/faces/'+n.toLowerCase()+'.webp';}}
 function stTexFrom(b,w,h){const im=ST_IMG[b.n];if(!(im&&im.ok))return stTex(b,w,h);
   const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(im,0,0,w,h);return x.getImageData(0,0,w,h).data;}
 function stH(i,j,k){let h=Math.imul(i,374761393)+Math.imul(j,668265263)+Math.imul(k,1442695041)|0;h=Math.imul(h^h>>>13,1274126177);h^=h>>>16;return(h>>>0)/4294967296;}
@@ -2347,7 +2350,7 @@ function stReport(bodies,moonG,jd){
   if(grp.length>=4)h.push(`<p class="pill">Planet parade: ${grp.length} planets ${grp===eve?'after sunset':'before sunrise'} (${grp.join(', ')})</p>`);
   if(!best.length&&!lineup.length)h.push('<p>No close alignments on this date. The planets are spread around the sky.</p>');
   h.push(`<h3>Where each world is</h3><table>${W.map(w=>`<tr><th>${w.n}</th><td>${w.where}</td><td>${w.moon?`${phase}, ${Math.round(illum*100)}% lit`:w.vis}${w.n==='Uranus'?' · binoculars':w.n==='Neptune'?' · telescope':''}</td></tr>`).join('')}</table>`);
-  h.push('<p class="fine">Positions from NASA JPL orbital elements, accurate to within a degree from 1800 to 2050. Constellations follow the zodiac along the ecliptic. Planet maps by <a href="https://www.solarsystemscope.com/textures/" target="_blank" rel="noopener">Solar System Scope</a> (CC BY 4.0), based on NASA imagery.</p>');
+  h.push('<p class="fine">Positions from NASA JPL orbital elements, accurate to within a degree from 1800 to 2050. Constellations follow the zodiac along the ecliptic. Planet portraits by Ether. Moon map and Saturn ring colours by <a href="https://www.solarsystemscope.com/textures/" target="_blank" rel="noopener">Solar System Scope</a> (CC BY 4.0), based on NASA imagery.</p>');
   const d=new Date(ST.sim);stRepTitle.textContent=d.toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'long',day:'numeric'})+' · '+d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
   stRepBody.innerHTML=h.join('');
   return best.length?`${best[0][1].n} and ${best[0][2].n} ${deg(best[0][0])} apart`:lineup.length?lineup[0].split(':')[0]:'';
@@ -2360,10 +2363,11 @@ function stSun(x,y,r,t){
   gr.addColorStop(0,'rgba(255,220,160,.6)');gr.addColorStop(.1,'rgba(255,175,85,.3)');gr.addColorStop(.38,'rgba(255,120,40,.08)');gr.addColorStop(1,'rgba(0,0,0,0)');
   g.fillStyle=gr;g.beginPath();g.arc(x,y,hr,0,ST_TAU);g.fill();
   g.globalCompositeOperation='source-over';
-  const sp=R>5?stSprite(ST_SUN,t,R):null;
-  if(sp)g.drawImage(sp,x-R,y-R,R*2,R*2);
+  const face=ST_FACE.Sun&&ST_FACE.Sun.ok?ST_FACE.Sun:null,sp=!face&&R>5?stSprite(ST_SUN,t,R):null;
+  if(face){const F2=R*1.45*(1+BEAT.flash*.03);g.drawImage(face,x-F2,y-F2,F2*2,F2*2);}
+  else if(sp)g.drawImage(sp,x-R,y-R,R*2,R*2);
   else{gr=g.createRadialGradient(x-R*.15,y-R*.15,0,x,y,R);gr.addColorStop(0,'#fffbea');gr.addColorStop(.4,'#ffd56e');gr.addColorStop(.82,'#ff9b30');gr.addColorStop(1,'#e2621a');g.fillStyle=gr;g.beginPath();g.arc(x,y,R,0,ST_TAU);g.fill();}
-  g.globalCompositeOperation='lighter';g.strokeStyle='rgba(255,200,120,.35)';g.lineWidth=Math.max(1,R*.06);g.beginPath();g.arc(x,y,R*1.02,0,ST_TAU);g.stroke();g.globalCompositeOperation='source-over';
+  if(!face){g.globalCompositeOperation='lighter';g.strokeStyle='rgba(255,200,120,.35)';g.lineWidth=Math.max(1,R*.06);g.beginPath();g.arc(x,y,R*1.02,0,ST_TAU);g.stroke();g.globalCompositeOperation='source-over';}
 }
 function stBody(x,y,pr,b,L,hl,B,t){
   const c=b.c,rgb=(m,a)=>`rgba(${Math.min(255,c[0]*m|0)},${Math.min(255,c[1]*m|0)},${Math.min(255,c[2]*m|0)},${a})`,lit=.5-.5*L[2];
@@ -2372,13 +2376,13 @@ function stBody(x,y,pr,b,L,hl,B,t){
   g.globalCompositeOperation='source-over';
   const ring=b.ring&&ST_RINGS[b.ring];
   if(ring&&pr>2.5)stRng2(ring.n,false,x,y,pr,pr>14?ring.hi:ring.lo);
-  const sp=pr>=2.6?stSprite(b,t,pr):null;
+  const face=pr>=2.6&&ST_FACE[b.n]&&ST_FACE[b.n].ok?ST_FACE[b.n]:null,sp=face||(pr>=2.6?stSprite(b,t,pr):null);
   if(!sp){g.fillStyle=rgb(1.1,1);g.beginPath();g.arc(x,y,Math.max(1,pr),0,ST_TAU);g.fill();}
   else{
     g.drawImage(sp,x-pr,y-pr,pr*2,pr*2);
     // day and night: the side facing away from the Sun falls into shadow
     const hx=x+L[0]*pr*.6,hy=y-L[1]*pr*.6,R=pr*Math.max(.3,1.3-.95*L[2]),sh=g.createRadialGradient(hx,hy,0,hx,hy,R*1.12);
-    sh.addColorStop(0,'rgba(0,0,0,0)');sh.addColorStop(.6,'rgba(0,0,0,.06)');sh.addColorStop(1,'rgba(2,3,9,.95)');
+    sh.addColorStop(0,'rgba(0,0,0,0)');sh.addColorStop(.6,'rgba(0,0,0,.06)');sh.addColorStop(1,'rgba(2,3,9,.86)');
     g.save();g.beginPath();g.arc(x,y,pr+.6,0,ST_TAU);g.clip();g.fillStyle=sh;g.fillRect(x-pr-1,y-pr-1,pr*2+2,pr*2+2);g.restore();
     if(b.atm&&pr>4){const a=b.atm;g.globalCompositeOperation='lighter';g.strokeStyle=`rgba(${a[0]},${a[1]},${a[2]},${.28*(.3+.7*lit)})`;g.lineWidth=Math.max(1,pr*.07);g.beginPath();g.arc(x,y,pr*1.02,0,ST_TAU);g.stroke();g.globalCompositeOperation='source-over';}
   }

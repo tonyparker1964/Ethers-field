@@ -1,5 +1,6 @@
-Surface maps of the Sun, Mercury, Venus, Earth (with clouds), Moon, Mars, Jupiter, Saturn, Uranus and Neptune:
+Planet and Sun portraits (textures/faces): made by Ether.
+Moon surface map (textures/moon.jpg) and Saturn's ring colours (embedded in index.html):
 Copyright (c) 2010-2017, Solar System Scope - www.solarsystemscope.com/textures
 Based on NASA imagery. Distributed under the terms of https://creativecommons.org/licenses/by/4.0/
-Changes: resized to 1024x512; Earth's cloud map composited onto the day map.
-Saturn's and Uranus's ring colours (embedded in index.html) are sampled from Solar System Scope's Saturn ring and NASA's Uranus ring images.
+Changes: resized to 1024x512; ring colours sampled from the Saturn ring image.
+Uranus's ring colours are sampled from a NASA image (public domain).
