@@ -187,10 +187,11 @@ input[type=range]::-moz-range-thumb{width:22px;height:22px;border:0;border-radiu
 /* the open sheet never grows past the screen: it scrolls inside, with the top bar pinned so it can always be closed */
 .dock:not(.side) .panel{max-height:calc(100dvh - 32px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px) - var(--dy,0px));overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}
 .dock:not(.side) .panel::-webkit-scrollbar{display:none}
-.panel:not(.compact) .mini{position:sticky;top:0;z-index:3;margin:0 -16px;padding:14px 16px 10px;background:rgba(36,36,38,.94);backdrop-filter:var(--material);-webkit-backdrop-filter:var(--material);border-bottom:.5px solid var(--sep)}
-.dock.side .panel:not(.compact) .mini{margin:0 -16px}
-@media (max-width:560px){.panel:not(.compact) .mini{margin:0 -12px;padding:12px 12px 10px}}
-.mini{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-top:16px}
+.mini{justify-content:center}
+.panel:not(.compact){padding-bottom:0!important}
+.panel:not(.compact) .mini{order:99;position:sticky;bottom:0;z-index:3;margin:0 -16px;padding:8px 16px;background:rgb(34,34,36);backdrop-filter:var(--material);-webkit-backdrop-filter:var(--material);border-top:.5px solid var(--sep)}
+@media (max-width:560px){.panel:not(.compact) .mini{margin:0 -12px;padding:8px 12px}}
+.mini{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .panel.compact{width:auto;max-width:100%;padding:8px;border-radius:30px;gap:0}
 .panel.compact>:not(.mini){display:none!important}
 .panel.compact .mini{padding-top:0}
@@ -227,6 +228,9 @@ body:has(.panel:not(.compact)) .stRep{top:calc(170px + env(safe-area-inset-top,0
   .stRep{top:auto!important;bottom:calc(150px + env(safe-area-inset-bottom,0px));left:12px;right:12px;width:auto;max-height:44vh}
   .mini select{max-width:calc(100vw - 190px)}
 }
+@media (pointer:coarse){select,input[type=date],input[type=time],input[type=text]{font-size:16px!important}}
+button,select,input,label{touch-action:manipulation}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 @media (prefers-reduced-motion:reduce){.meter i,.breath,.panel,.dock,button{transition:none}.recDot{animation:none}}
 </style>
 
@@ -629,7 +633,8 @@ handle.addEventListener('pointerdown',e=>{
   if(e.target.closest('button,input,label'))return;
   const y0=e.clientY,start=DK.y;let target=DK.side;handle.setPointerCapture(e.pointerId);handle.classList.add('dragging');dock.style.transition='none';
   // drag toward the left or right edge to snap into a side panel; drag a side panel down to the bottom to dock it there again
-  const mv=ev=>{const x=ev.clientX,y=ev.clientY;
+  let moved=false;
+  const mv=ev=>{const x=ev.clientX,y=ev.clientY;if(!moved&&Math.abs(y-y0)<8&&Math.abs(x-e.clientX)<8)return;moved=true;
     target=x<innerWidth*.14?'left':x>innerWidth*.86?'right':(DK.side!=='bottom'&&y>innerHeight*.75)?'bottom':DK.side==='bottom'?'bottom':DK.side;
     if(DK.side==='bottom'){DK.y=start-(y-y0);placeDock();}
     const show=target!==DK.side;snapHint.className='snapHint '+target+(show?' on':'');};
