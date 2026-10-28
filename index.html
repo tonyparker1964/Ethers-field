@@ -226,6 +226,21 @@ body:has(.panel:not(.compact)) .stRep{top:calc(170px + env(safe-area-inset-top,0
 .stRep .pill{padding:9px 12px;border-radius:12px;background:rgba(255,214,120,.14);color:#ffd88a;font-weight:600}
 .stRep .fine{font-size:11px;color:var(--faint)}.stRep .fine a{color:var(--muted)}
 .stRep .x{background:var(--fill);width:28px;height:28px;margin:0}
+.stRep .tapHint{margin:-2px 0 6px;font-size:12px;color:var(--faint)}
+.stRep .pl{background:none;padding:2px 0;border-radius:6px;font:600 13px/1.3 var(--text);color:var(--fg);letter-spacing:-.005em;display:inline-flex;align-items:center;gap:4px}
+.stRep .pl::after{content:"";width:6px;height:6px;border-right:1.5px solid var(--faint);border-bottom:1.5px solid var(--faint);transform:rotate(-45deg);transition:transform .2s;margin-left:2px}
+.stRep .pl[aria-expanded="true"]::after{transform:rotate(45deg)}
+.stRep .pl:hover{background:none;color:#fff}
+.stRep .rx{color:#ffb38a}
+.stRep tr.metaRow{border-top:0}.stRep tr.metaRow td{padding:0 0 10px}
+.metaCard{background:rgba(255,255,255,.06);border-radius:16px;padding:12px 14px;color:var(--fg)}
+.metaCard .arch{margin:0;font:600 15px/1.3 var(--display);letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
+.metaCard .glyph{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:rgba(255,214,120,.16);color:#ffd88a;font-size:16px}
+.metaCard .kw{margin:6px 0 8px;color:var(--muted)}
+.metaCard dl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:0}
+.metaCard dt{color:var(--faint);font-size:12px;padding-top:1px}.metaCard dd{margin:0}
+.metaCard .refl{margin:10px 0 0;font-style:italic;color:#ffd88a}
+.metaCard .toneBtn{margin-top:10px;font-size:13px;padding:7px 13px}
 .stBack{position:fixed;z-index:6;left:max(20px,env(safe-area-inset-left,0px));top:calc(170px + env(safe-area-inset-top,0px));background:var(--glass);backdrop-filter:var(--material);-webkit-backdrop-filter:var(--material);border:.5px solid var(--line);box-shadow:0 10px 30px rgba(0,0,0,.4)}
 @media (max-width:560px){
   .stRep{top:auto!important;bottom:calc(150px + env(safe-area-inset-bottom,0px));left:12px;right:12px;width:auto;max-height:44vh}
@@ -2333,7 +2348,7 @@ cv.addEventListener('pointermove',e=>{if(mode!=='stellar'||!ST.ptrs.has(e.pointe
 cv.addEventListener('pointerup',e=>{if(mode!=='stellar')return;
   if(ST.tap&&performance.now()-ST.tap.t<400){const r=cv.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;let best=null,bd=1e9;
     for(const h of ST.hits){const d=Math.hypot(h.x-x,h.y-y);if(d<Math.max(18,h.r+10)&&d<bd){bd=d;best=h;}}
-    if(best&&best.n!==ST.focus)stSetFocus(best.n);}
+    if(best){if(best.n!==ST.focus)stSetFocus(best.n);if(ST_META[best.n]){ST.repOpen=best.n;ST.repHTML='';ST.repScroll=true;stShowRep(true);}}}
   ST.tap=null;});
 ['pointerup','pointercancel','lostpointercapture'].forEach(ev=>cv.addEventListener(ev,e=>ST.ptrs.delete(e.pointerId)));
 cv.addEventListener('wheel',e=>{if(mode!=='stellar')return;e.preventDefault();ST.zoom=Math.max(.05,Math.min(4,ST.zoom*Math.exp(e.deltaY*.0012)));ST.manual=performance.now();},{passive:false});
@@ -2341,17 +2356,42 @@ stView.onchange=()=>{ST.zoom=1;ST.manual=-1e9;};
 document.getElementById('stNow').onclick=()=>{ST.sim=Date.now();ST.sync=0;};
 
 /* ---- the sky report: what you would see from Earth on the chosen date ---- */
+// the metaphysical character of each world, from astrological and spiritual tradition
+const ST_META={
+ Sun:{g:'\u2609',a:'The Self',k:'Identity, life force, purpose, creative will',rules:'Leo',day:'Sunday',metal:'Gold',ch:'crown',r:'What lights you from the inside today?'},
+ Moon:{g:'\u263D',a:'The Inner Tide',k:'Emotion, instinct, memory, nurture, the cycles of change',rules:'Cancer',day:'Monday',metal:'Silver',ch:'third',r:'What are you feeling beneath the surface?'},
+ Mercury:{g:'\u263F',a:'The Messenger',k:'Mind, speech, learning, travel, connection',rules:'Gemini and Virgo',day:'Wednesday',metal:'Quicksilver',ch:'throat',r:'What wants to be said, or heard?'},
+ Venus:{g:'\u2640',a:'The Lover',k:'Love, beauty, harmony, values, pleasure',rules:'Taurus and Libra',day:'Friday',metal:'Copper',ch:'heart',r:'What do you truly value, and do you give it your time?'},
+ Mars:{g:'\u2642',a:'The Warrior',k:'Drive, courage, desire, action, boundaries',rules:'Aries (and traditionally Scorpio)',day:'Tuesday',metal:'Iron',ch:'solar',r:'Where is your courage asking you to move?'},
+ Jupiter:{g:'\u2643',a:'The Teacher',k:'Growth, faith, wisdom, abundance, meaning',rules:'Sagittarius (and traditionally Pisces)',day:'Thursday',metal:'Tin',ch:'sacral',r:'Where are you being invited to grow?'},
+ Saturn:{g:'\u2644',a:'The Elder',k:'Structure, time, discipline, lessons, mastery',rules:'Capricorn (and traditionally Aquarius)',day:'Saturday',metal:'Lead',ch:'root',r:'What foundation are you building, one stone at a time?'},
+ Uranus:{g:'\u2645',a:'The Awakener',k:'Sudden change, freedom, insight, innovation',rules:'Aquarius',oct:'Mercury',r:'What old pattern is ready to break open?'},
+ Neptune:{g:'\u2646',a:'The Dreamer',k:'Intuition, imagination, compassion, spirit, dissolving boundaries',rules:'Pisces',oct:'Venus',r:'What does your intuition already know?'},
+ Pluto:{g:'\u2647',a:'The Transformer',k:'Death and rebirth, power, depth, renewal',rules:'Scorpio',oct:'Mars',r:'What are you ready to release so something new can be born?'}};
+const ST_SIGNS=[['Aries','initiative'],['Taurus','steadiness'],['Gemini','curiosity'],['Cancer','care'],['Leo','radiance'],['Virgo','refinement'],['Libra','balance'],['Scorpio','intensity'],['Sagittarius','exploration'],['Capricorn','ambition'],['Aquarius','vision'],['Pisces','compassion']];
+const ST_CHAKRA={root:['Root',396],sacral:['Sacral',417],solar:['Solar plexus',528],heart:['Heart',639],throat:['Throat',741],third:['Third eye',852],crown:['Crown',963]};
+function stSign(lonJ2000,T){const l=((lonJ2000/ST_D2R+1.3969713*T)%360+360)%360;return ST_SIGNS[Math.floor(l/30)];}
+function stGeoLon(i,jd){const T=(jd-2451545)/36525,yr=2000+(jd-2451545)/365.25,o=stEl(ST_PL[i],T,yr),p=stPos(o,stKepler(o.M,o.e)),oe=stEl(ST_PL[2],T,yr),e=stPos(oe,stKepler(oe.M,oe.e));return Math.atan2(p[1]-e[1],p[0]-e[0]);}
+function stMetaCard(n,info){const M=ST_META[n];if(!M)return '';const c=M.ch&&ST_CHAKRA[M.ch],sg=info.sign;
+  return `<div class="metaCard"><p class="arch"><span class="glyph">${M.g}\uFE0E</span>${M.a}</p><p class="kw">${M.k}</p><dl>`+
+    (sg?`<dt>Sign now</dt><dd>${n} in ${sg[0]}: ${sg[1]}${info.retro?'. <b>Retrograde</b>: a time to review and turn inward':''}</dd>`:'')+(info.where?`<dt>In the sky</dt><dd>In front of the stars of ${info.where}</dd>`:'')+
+    `<dt>Rules</dt><dd>${M.rules}</dd>`+(M.day?`<dt>Day</dt><dd>${M.day}</dd><dt>Metal</dt><dd>${M.metal}</dd>`:'')+
+    (c?`<dt>Chakra</dt><dd>${c[0]}</dd>`:`<dt>Octave</dt><dd>The higher octave of ${M.oct}</dd>`)+`</dl><p class="refl">${M.r}</p>`+
+    (c?`<button class="toneBtn" data-tone="${M.ch}">Play the ${c[0].toLowerCase()} tone · ${c[1]} Hz</button>`:'')+`</div>`;}
+stRepBody.addEventListener('click',e=>{const b=e.target.closest('[data-meta]');if(b){ST.repOpen=ST.repOpen===b.dataset.meta?null:b.dataset.meta;ST.repHTML='';ST.repT=0;ST.repScroll=!!ST.repOpen;return;}
+  const tb=e.target.closest('[data-tone]');if(tb){const sel=document.getElementById('chakraTone');sel.value=tb.dataset.tone;sel.dispatchEvent(new Event('change',{bubbles:true}));}});
+
 function stReport(bodies,moonG,jd){
   const E=bodies[2].h,sun=[-E[0],-E[1],-E[2]],ang=(a,b)=>Math.acos(Math.max(-1,Math.min(1,(a[0]*b[0]+a[1]*b[1]+a[2]*b[2])/Math.hypot(...a)/Math.hypot(...b)))),
     lonOf=v=>Math.atan2(v[1],v[0]),sunLon=lonOf(sun),deg=r=>(r/ST_D2R).toFixed(1)+'°';
-  const W=[0,1,3,4,5,6,7].map(i=>({n:ST_PL[i].n,v:bodies[i].h.map((q,k)=>q-E[k])})).concat([{n:'Moon',v:moonG,moon:1}]);
+  const W=[0,1,3,4,5,6,7].map(i=>({n:ST_PL[i].n,i,v:bodies[i].h.map((q,k)=>q-E[k])})).concat([{n:'Pluto',i:8,dw:1,v:bodies[8].h.map((q,k)=>q-E[k])},{n:'Moon',v:moonG,moon:1}]);
   const rows=[],evening=[],morning=[],night=[];
   for(const w of W){const el=ang(w.v,sun),east=((lonOf(w.v)-sunLon)%ST_TAU+ST_TAU)%ST_TAU<Math.PI,lim=w.n==='Mercury'?18:w.n==='Venus'?10:w.moon?12:15;
     w.el=el;w.where=stZod(lonOf(w.v));
     w.vis=el<lim*ST_D2R?'Too close to the Sun to see':el>150*ST_D2R?'Up all night':east?'Evening sky':'Morning sky';
-    if(!w.moon&&el>=lim*ST_D2R){(el>150*ST_D2R?night:east?evening:morning).push(w.n);}}
+    if(!w.moon&&!w.dw&&el>=lim*ST_D2R){(el>150*ST_D2R?night:east?evening:morning).push(w.n);}}
   // close meetings in the sky (conjunctions), as seen from Earth
-  const meet=[];for(let i=0;i<W.length;i++)for(let j=i+1;j<W.length;j++){const s=ang(W[i].v,W[j].v);if(s<6*ST_D2R)meet.push([s,W[i],W[j]]);}
+  const meet=[];for(let i=0;i<W.length;i++)for(let j=i+1;j<W.length;j++){if(W[i].dw||W[j].dw)continue;const s=ang(W[i].v,W[j].v);if(s<6*ST_D2R)meet.push([s,W[i],W[j]]);}
   meet.sort((a,b)=>a[0]-b[0]);
   // planets lined up with the Sun and Earth
   const lineup=[];const eL=lonOf(E);
@@ -2367,10 +2407,16 @@ function stReport(bodies,moonG,jd){
   const eve=evening.concat(night),mor=morning.concat(night),grp=eve.length>=mor.length?eve:mor;
   if(grp.length>=4)h.push(`<p class="pill">Planet parade: ${grp.length} planets ${grp===eve?'after sunset':'before sunrise'} (${grp.join(', ')})</p>`);
   if(!best.length&&!lineup.length)h.push('<p>No close alignments on this date. The planets are spread around the sky.</p>');
-  h.push(`<h3>Where each world is</h3><table>${W.map(w=>`<tr><th>${w.n}</th><td>${w.where}</td><td>${w.moon?`${phase}, ${Math.round(illum*100)}% lit`:w.vis}${w.n==='Uranus'?' · binoculars':w.n==='Neptune'?' · telescope':''}</td></tr>`).join('')}</table>`);
-  h.push('<p class="fine">Positions from NASA JPL orbital elements, accurate to within a degree from 1800 to 2050. Constellations follow the zodiac along the ecliptic. Planet portraits by Ether. Moon map and Saturn ring colours by <a href="https://www.solarsystemscope.com/textures/" target="_blank" rel="noopener">Solar System Scope</a> (CC BY 4.0), based on NASA imagery.</p>');
+  const T=(jd-2451545)/36525,precJ=1.397*T*ST_D2R,row=(n,where,what,info)=>{const open=ST.repOpen===n;info.where=where;
+    return `<tr><th><button class="pl" data-meta="${n}" aria-expanded="${open}">${n}</button></th><td>${where}</td><td>${what}</td></tr>`+(open?`<tr class="metaRow" data-card="${n}"><td colspan="3">${stMetaCard(n,info)}</td></tr>`:'');};
+  const rowsH=[row('Sun',stZod(sunLon),'Daytime',{sign:stSign(sunLon,T)})].concat(W.map(w=>{const l=lonOf(w.v),info={sign:stSign(w.moon?l+precJ:l,w.moon?0:T)};
+    if(w.i!==undefined){let d=stGeoLon(w.i,jd+.5)-stGeoLon(w.i,jd-.5);d=Math.atan2(Math.sin(d),Math.cos(d));info.retro=d<0;}
+    return row(w.n,w.where,(w.moon?`${phase}, ${Math.round(illum*100)}% lit`:w.vis)+(w.n==='Uranus'?' · binoculars':w.n==='Neptune'||w.n==='Pluto'?' · telescope':'')+(info.retro?' · <span class="rx">retrograde</span>':''),info);}));
+  h.push(`<h3>Where each world is</h3><p class="tapHint">Tap a name for its meaning. The middle column is the constellation behind each world; astrological signs are in each card.</p><table>${rowsH.join('')}</table>`);
+  h.push('<p class="fine">Positions from NASA JPL orbital elements, accurate to within a degree from 1800 to 2050. Constellations follow the zodiac along the ecliptic. Meanings come from astrological and spiritual tradition, offered for reflection; signs are tropical. Planet portraits by Ether. Moon map and Saturn ring colours by <a href="https://www.solarsystemscope.com/textures/" target="_blank" rel="noopener">Solar System Scope</a> (CC BY 4.0), based on NASA imagery.</p>');
   const d=new Date(ST.sim);stRepTitle.textContent=d.toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'long',day:'numeric'})+' · '+d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
-  stRepBody.innerHTML=h.join('');
+  const html=h.join('');if(html!==ST.repHTML){ST.repHTML=html;stRepBody.innerHTML=html;}
+  if(ST.repScroll){ST.repScroll=false;const c=stRepBody.querySelector('.metaRow');if(c)c.scrollIntoView({block:'nearest',behavior:'smooth'});}
   return best.length?`${best[0][1].n} and ${best[0][2].n} ${deg(best[0][0])} apart`:lineup.length?lineup[0].split(':')[0]:'';
 }
 
