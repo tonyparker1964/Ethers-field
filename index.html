@@ -421,7 +421,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 <select id="stSpeed" aria-label="How fast time flows"><option value="live">Real time</option><option value="hour" selected>An hour each second</option><option value="day">A day each second</option><option value="week">A week each second</option><option value="month">A month each second</option><option value="year">A year each second</option><option value="pause">Pause time</option></select>
       <select id="stView" aria-label="Camera"><option value="drift" selected>Cinematic drift</option><option value="above">From above</option><option value="edge">Along the ecliptic</option><option value="inner">Inner planets</option></select>
       <select id="stScale" aria-label="Distances"><option value="soft" selected>Harmonic distances</option><option value="true">True distances</option></select>
-      <div class="seg" role="group" aria-label="Show in the sky"><button data-st="far" aria-pressed="true">Distant stars</button><button data-st="cons" aria-pressed="true">Constellations</button><button data-st="orbits" aria-pressed="true">Orbits</button><button data-st="grid" aria-pressed="true">Grid</button><button data-st="labels" aria-pressed="true">Labels</button></div>
+      <div class="seg" role="group" aria-label="Show in the sky"><button data-st="far" aria-pressed="true">Distant stars</button><button data-st="cons" aria-pressed="true">Constellations</button><button data-st="orbits" aria-pressed="true">Orbits</button><button data-st="grid" aria-pressed="true">Grid</button><button data-st="labels" aria-pressed="true">Planet names</button></div>
       <span class="hint" id="stInfo"></span>
     </div>
     <div class="row" id="aoRow" hidden>
@@ -2617,19 +2617,18 @@ function drawStellar(t,B){
     stInfo.textContent=tt<8?'Tap a planet to fly to it · drag to turn · pinch to zoom':(alignText||'Pick a date to see the sky on that day');ST.lastText=alignText;}
   else alignText=alignText||ST.lastText||'';
   // the clock and the camera distance, in the style of a star chart
-  if(!O.labels&&!stTopDate.hidden){stTopDate.hidden=true;stOpenTime(false);}
-  if(O.labels){
+  {
     if(!ST.topPad||ST.topW!==W){ST.topW=W;ST.topPad=parseFloat(getComputedStyle(document.querySelector('.top')).paddingTop)||18;}
     const ds=stFmt(ST.sim),fs=m<500?12:14,by=ST.topPad+(W>=900?22:(m<500?96:100));
     g.font=`500 ${fs}px ${SF}`;if('letterSpacing' in g)g.letterSpacing='1px';
     const tw=g.measureText(ds).width+34,tTop=Math.round(by-16)+'px';if(stTopDate.style.top!==tTop)stTopDate.style.top=tTop;if(stTopDateTxt.textContent!==ds)stTopDateTxt.textContent=ds;stTopDate.hidden=false;
-    const pTop=Math.round(by+(alignText?48:24))+'px';if(stTimePop.style.top!==pTop)stTimePop.style.top=pTop;
+    const pTop=Math.round(by+(O.labels&&alignText?48:24))+'px';if(stTimePop.style.top!==pTop)stTimePop.style.top=pTop;
     if(REC.on){g.fillStyle='rgba(8,18,40,.55)';g.strokeStyle=`hsla(${hu},70%,62%,.6)`;g.lineWidth=1;g.beginPath();
     g.moveTo(W/2-tw/2+8,by-14);g.lineTo(W/2+tw/2-8,by-14);g.lineTo(W/2+tw/2,by);g.lineTo(W/2+tw/2-8,by+14);g.lineTo(W/2-tw/2+8,by+14);g.lineTo(W/2-tw/2,by);g.closePath();g.fill();g.stroke();
     g.fillStyle=`hsla(${hu},60%,92%,.92)`;g.fillText(ds,W/2,by+1);}
-    if(alignText){g.font=`600 ${fs}px ${SF}`;if('letterSpacing' in g)g.letterSpacing='0px';g.fillStyle=`hsla(45,95%,70%,${.55+.4*B.v})`;g.fillText(alignText,W/2,by+30);}
-    const vr=D*m*.44/foc,au=soft?Math.pow(vr,1/.55):vr;g.save();g.translate(W-16,H/2);g.rotate(-Math.PI/2);g.font=`500 10px ${SF}`;if('letterSpacing' in g)g.letterSpacing='1px';g.fillStyle=`hsla(${hu},60%,75%,.6)`;
-    g.fillText(`DISTANCE ${au<10?au.toFixed(2):au.toFixed(1)} AU`,0,0);g.restore();
+    if(O.labels&&alignText){g.font=`600 ${fs}px ${SF}`;if('letterSpacing' in g)g.letterSpacing='0px';g.fillStyle=`hsla(45,95%,70%,${.55+.4*B.v})`;g.fillText(alignText,W/2,by+30);}
+    if(O.labels){const vr=D*m*.44/foc,au=soft?Math.pow(vr,1/.55):vr;g.save();g.translate(W-16,H/2);g.rotate(-Math.PI/2);g.font=`500 10px ${SF}`;if('letterSpacing' in g)g.letterSpacing='1px';g.fillStyle=`hsla(${hu},60%,75%,.6)`;
+    g.fillText(`DISTANCE ${au<10?au.toFixed(2):au.toFixed(1)} AU`,0,0);g.restore();}
     if('letterSpacing' in g)g.letterSpacing='0px';
   }
   g.textAlign='start';g.textBaseline='alphabetic';
