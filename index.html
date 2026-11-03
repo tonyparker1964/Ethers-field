@@ -296,6 +296,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
       <label class="ctl cmOnly" for="cmSpeed">Motion <input id="cmSpeed" type="range" min="0" max="3" step="0.05" value="0.5" aria-label="Constellation vortex speed"><output id="cmSpeedValue" for="cmSpeed">0.50×</output></label>
       <label class="ctl cmOnly" for="cmBrightness">Light <input id="cmBrightness" type="range" min="0.25" max="2.5" step="0.05" value="1" aria-label="Constellation brightness"><output id="cmBrightnessValue" for="cmBrightness">100%</output></label>
       <label class="ctl cmOnly" for="cmNames"><input id="cmNames" type="checkbox" checked aria-label="Show star names">Star names</label>
+      <button id="cmTransport" class="cmOnly" aria-label="Stop constellation animation" aria-pressed="false">Stop</button>
       <select id="cmTempo" class="cmOnly" aria-label="Change center constellation every"><option value="1">Every 1 second</option><option value="2" selected>Every 2 seconds</option><option value="3">Every 3 seconds</option><option value="5">Every 5 seconds</option><option value="10">Every 10 seconds</option><option value="22">Every 22 seconds</option><option value="30">Every 30 seconds</option><option value="60">Every 60 seconds</option><option value="90">Every 90 seconds</option><option value="custom">Custom time</option></select>
       <span id="cmMiniInfo" class="cmOnly" aria-live="off"></span>
       <input type="date" id="stDateMini" class="stOnly" aria-label="Show the sky on this date" min="1800-01-01" max="2050-12-31">
@@ -519,7 +520,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
   window.addEventListener('unhandledrejection',function(e){var r=e.reason;if(r&&(r.name==='NotAllowedError'||r.name==='AbortError'))return;show('Promise: '+(r&&(r.message||r.name)||String(r)));});
 })();
 </script>
-<script src="constellation-meditation-v35.js"></script>
+<script src="constellation-meditation-v37.js"></script>
 <script>
 (()=>{
 const cv=document.getElementById('c'), g=cv.getContext('2d');
