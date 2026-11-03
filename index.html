@@ -14,6 +14,10 @@
 <link rel="icon" type="image/png" href="icons/favicon.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <style>:root{color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#000;color:#f5f5f7}img{max-width:100%}[hidden]{display:none!important}</style>
+<style>
+body:not(.m-constellations) .cmOnly{display:none!important}
+.mini .cmOnly{font-size:11px;gap:7px}.mini #cmSpeed{width:95px}.mini #cmSpeedValue{width:38px;font-variant-numeric:tabular-nums}#cmMiniInfo{color:#99accb;font-size:10px;padding:0 7px}#cmDwell{width:120px}#cmPick{max-width:260px}#cmRow{gap:12px}#cmRow input[type=checkbox]{accent-color:#a9c9f7}#cmDwellValue{min-width:26px}@media(max-width:600px){body.m-constellations .mini .cmOnly{order:6}body.m-constellations .mini label.cmOnly{flex-basis:100%;justify-content:center}.mini #cmSpeed{width:130px}#cmMiniInfo{flex-basis:100%;text-align:center}#cmRow .ctl{flex-wrap:wrap;font-size:11px}}
+</style>
 </head>
 <body>
 <title>Ether&#8217;s Field</title>
@@ -289,6 +293,8 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
     <div class="mini" id="mini">
       <button class="play" id="miniPlay" aria-label="Play"></button>
       <select id="modeSel" aria-label="Visual"></select>
+      <label class="ctl cmOnly" for="cmSpeed">Rotation <input id="cmSpeed" type="range" min="0" max="3" step="0.05" value="0.5" aria-label="Constellation rotation speed"><output id="cmSpeedValue" for="cmSpeed">0.50×</output></label>
+      <span id="cmMiniInfo" class="cmOnly" aria-live="off"></span>
       <input type="date" id="stDateMini" class="stOnly" aria-label="Show the sky on this date" min="1800-01-01" max="2050-12-31">
       <button id="stRepBtn" class="icon stOnly" aria-label="Sky report" aria-pressed="false"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="3.2" fill="currentColor"/><ellipse cx="10" cy="10" rx="8" ry="3.6" fill="none" stroke="currentColor" stroke-width="1.5" transform="rotate(-20 10 10)"/></svg></button>
       <button id="miniHide" class="icon" aria-label="Hide controls" title="Hide controls"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 8l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
@@ -327,6 +333,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
         <button data-mode="alpha" aria-pressed="false">Alpha-Omega</button>
         <button data-mode="genesis" aria-pressed="false">Genesis</button>
         <button data-mode="stellar" aria-pressed="false">Stellar Alignment</button>
+        <button data-mode="constellations" aria-pressed="false">Constellation Meditation</button>
       </div>
       <select id="pal" aria-label="Palette">
         <option value="ember">Ember</option>
@@ -413,6 +420,15 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
       <select id="gnLoop" aria-label="Loop or play once"><option value="loop" selected>Loop</option><option value="once">Play once</option></select>
       <span class="hint" id="gnInfo"></span>
     </div>
+    <div class="row" id="cmRow" hidden>
+      <select id="cmPick" aria-label="Choose a constellation"></select>
+      <button id="cmPrev" aria-label="Previous constellation">← Previous</button><button id="cmNext" aria-label="Next constellation">Next →</button>
+      <button id="cmPause" aria-pressed="false">Pause sequence</button><button id="cmRestart">↺ Start at 1</button>
+      <label class="ctl" for="cmDwell">Time per constellation <input id="cmDwell" type="range" min="8" max="90" step="1" value="22"><output id="cmDwellValue" for="cmDwell">22s</output></label>
+      <label class="ctl"><input id="cmNames" type="checkbox" checked>Star names</label><label class="ctl"><input id="cmLines" type="checkbox" checked>Pattern lines</label>
+      <span class="hint" id="cmInfo" role="status"></span>
+      <span class="hint">Alphabetical loop 1–88 · rotation and sequence run with music or in silence · themes are symbolic reflections</span>
+    </div>
     <div class="row" id="stRow" hidden>
       <label class="ctl">Date<input type="date" id="stDate" min="1800-01-01" max="2050-12-31"></label>
       <label class="ctl">Time<input type="time" id="stTime" value="21:00"></label>
@@ -498,9 +514,11 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
   window.addEventListener('unhandledrejection',function(e){var r=e.reason;if(r&&(r.name==='NotAllowedError'||r.name==='AbortError'))return;show('Promise: '+(r&&(r.message||r.name)||String(r)));});
 })();
 </script>
+<script src="constellation-meditation.js"></script>
 <script>
 (()=>{
 const cv=document.getElementById('c'), g=cv.getContext('2d');
+const CM=window.EFConstellationMeditation.mount();
 let W=0,H=0,DPR=1;
 function resize(){DPR=Math.min(2,window.devicePixelRatio||1);W=cv.clientWidth;H=cv.clientHeight;cv.width=W*DPR;cv.height=H*DPR;g.setTransform(DPR,0,0,DPR,0,0);g.fillStyle='#0b0a10';g.fillRect(0,0,W,H);seedParticles();}
 addEventListener('resize',resize);
@@ -613,7 +631,7 @@ function routeFiles(list){
 }
 
 /* ---------- controls ---------- */
-document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;document.getElementById('cymRow').hidden=mode!=='cymatic';document.getElementById('solidRow').hidden=mode!=='solids';document.getElementById('imgRow').hidden=mode!=='images';document.getElementById('sigRow').hidden=mode!=='sigils';document.getElementById('fasRow').hidden=mode!=='fascia';document.getElementById('jrnRow').hidden=mode!=='journey';document.getElementById('aoRow').hidden=mode!=='alpha';document.getElementById('gnRow').hidden=mode!=='genesis';document.getElementById('stRow').hidden=mode!=='stellar';if(mode==='stellar')ST.start=null;cv.style.touchAction=mode==='stellar'?'none':'';if(mode==='genesis')GN.start=null;document.getElementById('glc').hidden=mode!=='images'&&mode!=='journey';document.querySelectorAll('[data-mode]').forEach(x=>x.setAttribute('aria-pressed',x===b));g.fillStyle='#0b0a10';g.fillRect(0,0,W,H);seedParticles();});
+document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;document.getElementById('cymRow').hidden=mode!=='cymatic';document.getElementById('solidRow').hidden=mode!=='solids';document.getElementById('imgRow').hidden=mode!=='images';document.getElementById('sigRow').hidden=mode!=='sigils';document.getElementById('fasRow').hidden=mode!=='fascia';document.getElementById('jrnRow').hidden=mode!=='journey';document.getElementById('aoRow').hidden=mode!=='alpha';document.getElementById('gnRow').hidden=mode!=='genesis';document.getElementById('stRow').hidden=mode!=='stellar';document.getElementById('cmRow').hidden=mode!=='constellations';if(mode==='constellations')CM.enter();else CM.leave();if(mode==='stellar')ST.start=null;cv.style.touchAction=mode==='stellar'?'none':'';if(mode==='genesis')GN.start=null;document.getElementById('glc').hidden=mode!=='images'&&mode!=='journey';document.querySelectorAll('[data-mode]').forEach(x=>x.setAttribute('aria-pressed',x===b));g.fillStyle='#0b0a10';g.fillRect(0,0,W,H);seedParticles();});
 document.getElementById('pal').onchange=e=>{pal=PAL[e.target.value];if(RAMP)buildRamps();GLYPHS=null;document.documentElement.style.setProperty('--accent',pal.acc);};
 document.getElementById('sens').oninput=e=>sens=+e.target.value;
 document.getElementById('bpm').oninput=e=>{bpm=+e.target.value;document.getElementById('bpmv').textContent=bpm;if(tone)tone.lfo.frequency.setTargetAtTime(bpm/60,ctx.currentTime,.2);};
@@ -2664,8 +2682,8 @@ function frame(t){
   sense(t);
   const B=breathPhase(t);
   if(guide){const lbl=B.p<.5?'inhale':'exhale'; if(lbl!==lastLabel){breathEl.textContent=lbl;lastLabel=lbl;} breathEl.style.letterSpacing=(.2+B.v*.35)+'em';}
-  if(mode==='breath') drawBreath(t,B); else if(mode==='fascia') drawFascia(t,B); else if(mode==='cymatic') drawCymatic(t,B); else if(mode==='sigils') drawSigils(t,B); else if(mode==='solids') drawSolids(t,B); else if(mode==='images') drawImages(t,B); else if(mode==='journey') drawJourney(t,B); else if(mode==='alpha') drawAlpha(t,B); else if(mode==='genesis') drawGenesis(t,B); else if(mode==='stellar') drawStellar(t,B); else drawRipple(t,B);
-  if(mode==='sigils'||mode==='solids'||mode==='images'||mode==='journey'||mode==='alpha'||mode==='genesis'||mode==='stellar')g.setTransform(DPR,0,0,DPR,0,0);
+  if(mode==='breath') drawBreath(t,B); else if(mode==='fascia') drawFascia(t,B); else if(mode==='cymatic') drawCymatic(t,B); else if(mode==='sigils') drawSigils(t,B); else if(mode==='solids') drawSolids(t,B); else if(mode==='images') drawImages(t,B); else if(mode==='journey') drawJourney(t,B); else if(mode==='alpha') drawAlpha(t,B); else if(mode==='genesis') drawGenesis(t,B); else if(mode==='stellar') drawStellar(t,B); else if(mode==='constellations') CM.draw(g,W,H,t,B,DPR); else drawRipple(t,B);
+  if(mode==='sigils'||mode==='solids'||mode==='images'||mode==='journey'||mode==='alpha'||mode==='genesis'||mode==='stellar'||mode==='constellations')g.setTransform(DPR,0,0,DPR,0,0);
   kalFrame();
   if(REC.on)recFrame();
   }catch(err){ // keep the app alive and report the problem instead of freezing
