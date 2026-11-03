@@ -294,6 +294,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
       <button class="play" id="miniPlay" aria-label="Play"></button>
       <select id="modeSel" aria-label="Visual"></select>
       <label class="ctl cmOnly" for="cmSpeed">Motion <input id="cmSpeed" type="range" min="0" max="3" step="0.05" value="0.5" aria-label="Constellation vortex speed"><output id="cmSpeedValue" for="cmSpeed">0.50×</output></label>
+      <select id="cmTempo" class="cmOnly" aria-label="Change center constellation every"><option value="1">Every 1 second</option><option value="2" selected>Every 2 seconds</option><option value="3">Every 3 seconds</option><option value="5">Every 5 seconds</option><option value="10">Every 10 seconds</option><option value="22">Every 22 seconds</option><option value="30">Every 30 seconds</option><option value="60">Every 60 seconds</option><option value="90">Every 90 seconds</option><option value="custom">Custom time</option></select>
       <span id="cmMiniInfo" class="cmOnly" aria-live="off"></span>
       <input type="date" id="stDateMini" class="stOnly" aria-label="Show the sky on this date" min="1800-01-01" max="2050-12-31">
       <button id="stRepBtn" class="icon stOnly" aria-label="Sky report" aria-pressed="false"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="3.2" fill="currentColor"/><ellipse cx="10" cy="10" rx="8" ry="3.6" fill="none" stroke="currentColor" stroke-width="1.5" transform="rotate(-20 10 10)"/></svg></button>
@@ -422,13 +423,13 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
     </div>
     <div class="row" id="cmRow" hidden>
       <select id="cmPick" aria-label="Choose a constellation"></select>
-      <select id="cmDir" aria-label="Constellation flow direction"><option value="in">Constellations flow inward</option><option value="out">Constellations flow outward</option><option value="breathe">Breathe out and in</option></select>
+      <select id="cmDir" aria-label="Constellation flow direction"><option value="in">Constellations flow inward</option><option value="out" selected>Constellations flow outward</option><option value="breathe">Breathe out and in</option></select>
       <button id="cmPrev" aria-label="Previous constellation">← Previous</button><button id="cmNext" aria-label="Next constellation">Next →</button>
       <button id="cmPause" aria-pressed="false">Pause sequence</button><button id="cmRestart">↺ Start at 1</button>
-      <label class="ctl" for="cmDwell">Time per constellation <input id="cmDwell" type="range" min="8" max="90" step="1" value="22"><output id="cmDwellValue" for="cmDwell">22s</output></label>
+      <label class="ctl" for="cmDwell">Time per constellation <input id="cmDwell" type="range" min="1" max="90" step="1" value="2"><output id="cmDwellValue" for="cmDwell">2s</output></label>
       <label class="ctl"><input id="cmNames" type="checkbox" checked>Star names</label><label class="ctl"><input id="cmLines" type="checkbox" checked>Pattern lines</label>
       <span class="hint" id="cmInfo" role="status"></span>
-      <span class="hint">Alphabetical loop 1–88 · rotation and sequence run with music or in silence · themes are symbolic reflections</span>
+      <span class="hint">All 88 patterns spiral outward in concentric circles · one center constellation cycles 1–88 · works with music or in silence · themes are symbolic reflections</span>
     </div>
     <div class="row" id="stRow" hidden>
       <label class="ctl">Date<input type="date" id="stDate" min="1800-01-01" max="2050-12-31"></label>
