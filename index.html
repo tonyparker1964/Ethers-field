@@ -423,6 +423,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
     </div>
     <div class="row" id="cmRow" hidden>
       <select id="cmPick" aria-label="Choose a constellation"></select>
+      <label class="ctl" for="cmPeriod">Spiral travel <select id="cmPeriod" aria-label="Spiral travel time"><option value="1">1 second</option><option value="2">2 seconds</option><option value="3">3 seconds</option><option value="5">5 seconds</option><option value="10">10 seconds</option><option value="20" selected>20 seconds</option><option value="40">40 seconds</option></select></label>
       <select id="cmDir" aria-label="Constellation flow direction"><option value="in">Constellations flow inward</option><option value="out" selected>Constellations flow outward</option><option value="breathe">Breathe out and in</option></select>
       <button id="cmPrev" aria-label="Previous constellation">← Previous</button><button id="cmNext" aria-label="Next constellation">Next →</button>
       <button id="cmPause" aria-pressed="false">Pause sequence</button><button id="cmRestart">↺ Start at 1</button>
