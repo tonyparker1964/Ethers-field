@@ -1,6 +1,6 @@
 // Ether's Field offline support: serve the app from the cache, refresh it in the background.
-const CACHE = 'ethers-field-v33';
-const CORE = ['./constellation-meditation.js', './constellation-data-LICENSE.txt', './', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png', './icons/favicon.png'];
+const CACHE = 'ethers-field-v34';
+const CORE = ['./constellation-meditation-v34.js', './constellation-meditation.js', './constellation-data-LICENSE.txt', './', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png', './icons/favicon.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener('fetch', e => {
@@ -12,6 +12,9 @@ self.addEventListener('fetch', e => {
   if (/\.(mp4|m4v|mov|webm)$/i.test(url.pathname)) return; // videos stream straight from the network (browsers need range requests)
   e.respondWith(caches.open(CACHE).then(async c => {
     const hit = await c.match(req, { ignoreSearch: sameOrigin });
+    if(sameOrigin && (req.mode==='navigate' || /\.(js|css)$/i.test(url.pathname))){
+      try{const r=await fetch(req,{cache:'no-cache'});if(r.ok){await c.put(req,r.clone());return r;}if(hit)return hit;return r;}catch(err){if(hit)return hit;throw err;}
+    }
     const fresh = fetch(req).then(r => { if (r && (r.ok || r.type === 'opaque')) c.put(req, r.clone()); return r; }).catch(() => hit);
     return hit || fresh;
   }));

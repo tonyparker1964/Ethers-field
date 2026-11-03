@@ -517,7 +517,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
   window.addEventListener('unhandledrejection',function(e){var r=e.reason;if(r&&(r.name==='NotAllowedError'||r.name==='AbortError'))return;show('Promise: '+(r&&(r.message||r.name)||String(r)));});
 })();
 </script>
-<script src="constellation-meditation.js"></script>
+<script src="constellation-meditation-v34.js"></script>
 <script>
 (()=>{
 const cv=document.getElementById('c'), g=cv.getContext('2d');
@@ -2703,7 +2703,7 @@ requestAnimationFrame(frame);
 
 <script>
 document.querySelectorAll('input[type=range]').forEach(r=>{const u=()=>r.style.setProperty('--p',((r.value-r.min)/(r.max-r.min)*100)+'%');r.addEventListener('input',u);u();});
-if('serviceWorker' in navigator){addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
+if('serviceWorker' in navigator){addEventListener('load',()=>{let refreshing=false;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(refreshing)return;refreshing=true;location.reload();});navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>r.update()).catch(()=>{});});}
 </script>
 </body>
 </html>
