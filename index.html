@@ -293,7 +293,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
     <div class="mini" id="mini">
       <button class="play" id="miniPlay" aria-label="Play"></button>
       <select id="modeSel" aria-label="Visual"></select>
-      <label class="ctl cmOnly" for="cmSpeed">Rotation <input id="cmSpeed" type="range" min="0" max="3" step="0.05" value="0.5" aria-label="Constellation rotation speed"><output id="cmSpeedValue" for="cmSpeed">0.50×</output></label>
+      <label class="ctl cmOnly" for="cmSpeed">Motion <input id="cmSpeed" type="range" min="0" max="3" step="0.05" value="0.5" aria-label="Constellation vortex speed"><output id="cmSpeedValue" for="cmSpeed">0.50×</output></label>
       <span id="cmMiniInfo" class="cmOnly" aria-live="off"></span>
       <input type="date" id="stDateMini" class="stOnly" aria-label="Show the sky on this date" min="1800-01-01" max="2050-12-31">
       <button id="stRepBtn" class="icon stOnly" aria-label="Sky report" aria-pressed="false"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="3.2" fill="currentColor"/><ellipse cx="10" cy="10" rx="8" ry="3.6" fill="none" stroke="currentColor" stroke-width="1.5" transform="rotate(-20 10 10)"/></svg></button>
@@ -422,6 +422,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
     </div>
     <div class="row" id="cmRow" hidden>
       <select id="cmPick" aria-label="Choose a constellation"></select>
+      <select id="cmDir" aria-label="Constellation flow direction"><option value="in">Constellations flow inward</option><option value="out">Constellations flow outward</option><option value="breathe">Breathe out and in</option></select>
       <button id="cmPrev" aria-label="Previous constellation">← Previous</button><button id="cmNext" aria-label="Next constellation">Next →</button>
       <button id="cmPause" aria-pressed="false">Pause sequence</button><button id="cmRestart">↺ Start at 1</button>
       <label class="ctl" for="cmDwell">Time per constellation <input id="cmDwell" type="range" min="8" max="90" step="1" value="22"><output id="cmDwellValue" for="cmDwell">22s</output></label>
@@ -2682,7 +2683,7 @@ function frame(t){
   sense(t);
   const B=breathPhase(t);
   if(guide){const lbl=B.p<.5?'inhale':'exhale'; if(lbl!==lastLabel){breathEl.textContent=lbl;lastLabel=lbl;} breathEl.style.letterSpacing=(.2+B.v*.35)+'em';}
-  if(mode==='breath') drawBreath(t,B); else if(mode==='fascia') drawFascia(t,B); else if(mode==='cymatic') drawCymatic(t,B); else if(mode==='sigils') drawSigils(t,B); else if(mode==='solids') drawSolids(t,B); else if(mode==='images') drawImages(t,B); else if(mode==='journey') drawJourney(t,B); else if(mode==='alpha') drawAlpha(t,B); else if(mode==='genesis') drawGenesis(t,B); else if(mode==='stellar') drawStellar(t,B); else if(mode==='constellations') CM.draw(g,W,H,t,B,DPR); else drawRipple(t,B);
+  if(mode==='breath') drawBreath(t,B); else if(mode==='fascia') drawFascia(t,B); else if(mode==='cymatic') drawCymatic(t,B); else if(mode==='sigils') drawSigils(t,B); else if(mode==='solids') drawSolids(t,B); else if(mode==='images') drawImages(t,B); else if(mode==='journey') drawJourney(t,B); else if(mode==='alpha') drawAlpha(t,B); else if(mode==='genesis') drawGenesis(t,B); else if(mode==='stellar') drawStellar(t,B); else if(mode==='constellations') CM.draw(g,W,H,t,B,DPR,F,pal,BEAT); else drawRipple(t,B);
   if(mode==='sigils'||mode==='solids'||mode==='images'||mode==='journey'||mode==='alpha'||mode==='genesis'||mode==='stellar'||mode==='constellations')g.setTransform(DPR,0,0,DPR,0,0);
   kalFrame();
   if(REC.on)recFrame();
