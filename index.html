@@ -16,7 +16,7 @@
 <style>:root{color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#000;color:#f5f5f7}img{max-width:100%}[hidden]{display:none!important}</style>
 <style>
 body:not(.m-constellations) .cmOnly{display:none!important}
-.mini .cmOnly{font-size:11px;gap:7px}.mini #cmSpeed{width:95px}.mini #cmBrightness{width:95px}.mini #cmBrightnessValue{min-width:38px;font-variant-numeric:tabular-nums}.mini label[for="cmNames"],.mini label[for="cmRings"]{padding:5px 8px;min-height:32px}.mini #cmNames,.mini #cmRings{width:14px;height:14px;accent-color:#a9c9f7}.mini #cmSpeedValue{width:38px;font-variant-numeric:tabular-nums}#cmMiniInfo{color:#99accb;font-size:10px;padding:0 7px}#cmDwell{width:120px}#cmPick{max-width:260px}#cmRow{gap:12px}#cmRow input[type=checkbox]{accent-color:#a9c9f7}#cmDwellValue{min-width:26px}@media(max-width:600px){body.m-constellations .mini .cmOnly{order:6}body.m-constellations .mini label.cmOnly{flex-basis:100%;justify-content:center}.mini #cmSpeed{width:130px}#cmMiniInfo{flex-basis:100%;text-align:center}#cmRow .ctl{flex-wrap:wrap;font-size:11px}}
+.mini .cmOnly{font-size:11px;gap:7px}.mini #cmSpeed{width:95px}.mini #cmCount{width:95px}.mini #cmCountValue{min-width:20px;font-variant-numeric:tabular-nums}.mini #cmBrightness{width:95px}.mini #cmBrightnessValue{min-width:38px;font-variant-numeric:tabular-nums}.mini label[for="cmNames"],.mini label[for="cmRings"]{padding:5px 8px;min-height:32px}.mini #cmNames,.mini #cmRings{width:14px;height:14px;accent-color:#a9c9f7}.mini #cmSpeedValue{width:38px;font-variant-numeric:tabular-nums}#cmMiniInfo{color:#99accb;font-size:10px;padding:0 7px}#cmDwell{width:120px}#cmPick{max-width:260px}#cmRow{gap:12px}#cmRow input[type=checkbox]{accent-color:#a9c9f7}#cmDwellValue{min-width:26px}@media(max-width:600px){body.m-constellations .mini .cmOnly{order:6}body.m-constellations .mini label.cmOnly{flex-basis:100%;justify-content:center}.mini #cmSpeed{width:130px}#cmMiniInfo{flex-basis:100%;text-align:center}#cmRow .ctl{flex-wrap:wrap;font-size:11px}}
 </style>
 </head>
 <body>
@@ -308,6 +308,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
       <label class="ctl cmOnly" for="cmSpeed">Motion <input id="cmSpeed" type="range" min="0" max="3" step="0.05" value="0.5" aria-label="Constellation vortex speed"><output id="cmSpeedValue" for="cmSpeed">0.50×</output></label>
       <label class="ctl cmOnly" for="cmBrightness">Light <input id="cmBrightness" type="range" min="0.25" max="2.5" step="0.05" value="1" aria-label="Constellation brightness"><output id="cmBrightnessValue" for="cmBrightness">100%</output></label>
       <label class="ctl cmOnly" for="cmNames"><input id="cmNames" type="checkbox" checked aria-label="Show star names">Star names</label>
+      <label class="ctl cmOnly" for="cmCount">At once <input id="cmCount" type="range" min="1" max="88" step="1" value="88" aria-label="How many constellations pulse out from the center at once"><output id="cmCountValue" for="cmCount">88</output></label>
       <label class="ctl cmOnly" for="cmRings"><input id="cmRings" type="checkbox" checked aria-label="Show the circle rings">Rings</label>
       <button id="cmTransport" class="cmOnly" aria-label="Stop constellation animation" aria-pressed="false">Stop</button>
       <select id="cmTempo" class="cmOnly" aria-label="Change center constellation every"><option value="1">Every 1 second</option><option value="2" selected>Every 2 seconds</option><option value="3">Every 3 seconds</option><option value="5">Every 5 seconds</option><option value="10">Every 10 seconds</option><option value="22">Every 22 seconds</option><option value="30">Every 30 seconds</option><option value="60">Every 60 seconds</option><option value="90">Every 90 seconds</option><option value="custom">Custom time</option></select>
@@ -533,7 +534,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
   window.addEventListener('unhandledrejection',function(e){var r=e.reason;if(r&&(r.name==='NotAllowedError'||r.name==='AbortError'))return;show('Promise: '+(r&&(r.message||r.name)||String(r)));});
 })();
 </script>
-<script src="constellation-meditation-v42.js"></script>
+<script src="constellation-meditation-v43.js"></script>
 <script>
 (()=>{
 const cv=document.getElementById('c'), g=cv.getContext('2d');

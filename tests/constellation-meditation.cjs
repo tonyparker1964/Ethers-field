@@ -41,3 +41,26 @@ els.get('cmRings').checked=true;arcs.length=0;app.draw(ringCtx,1280,800,120000,{
 els.get('cmRings').checked=false;arcs.length=0;rendered.length=0;app.draw(ringCtx,1280,800,120016,{p:.25,v:.5},2);const without=arcs.filter(r=>r>100).length;
 assert(withRings>=24,'rings drawn when on');assert.equal(without,0,'no large circles when rings are off');assert.equal(rendered.filter(p=>!p.center).length,88);els.get('cmRings').checked=true;
 console.log('PASS: Rings toggle removes every circle ring while all 88 patterns keep moving.');}
+
+{// sky orientation: north up, east on the left, as seen looking up (Orion, Big Dipper, Cassiopeia)
+const src=fs.readFileSync('constellation-meditation.js','utf8');const i0=src.indexOf('const DATA=')+11;let d=0,j=i0;for(;j<src.length;j++){const ch=src[j];if(ch==='{'||ch==='[')d++;else if(ch==='}'||ch===']'){d--;if(!d)break;}}const D=JSON.parse(src.slice(i0,j+1));
+function where(name){const con=D.constellations.findIndex(c=>c.name===name);const dots=[];const dc=new Proxy(g,{get(o,k){if(k==='arc')return (x,y,r)=>{if(r===2.1)dots.push([x,y])};return o[k]}});app.choose(con);app.draw(dc,1600,1000,5000,{p:.25,v:.5},1);const m=new Map();D.constellations[con].stars.forEach((s,k)=>m.set(s.name,dots[k]));return m}
+const ori=where('Orion'),uma=where('Ursa Major'),cas=where('Cassiopeia');
+assert(ori.get('Betelgeuse')[0]<ori.get('Rigel')[0]&&ori.get('Betelgeuse')[1]<ori.get('Rigel')[1],'Betelgeuse upper left of Rigel');
+assert(ori.get('Alnitak')[0]<ori.get('Mintaka')[0],'Orion belt runs east (left) to west (right)');
+assert(uma.get('Alkaid')[0]<uma.get('Dubhe')[0],'Big Dipper handle to the east (left) of the bowl');
+assert(cas.get('Segin')[0]<cas.get('Caph')[0],'Cassiopeia W: Caph on the west (right)');
+console.log('PASS: constellations face the way they look in the sky (Orion, Big Dipper, Cassiopeia).');}
+
+{// how many constellations pulse out at once: 1 to 88
+els.get('cmDir').value='out';els.get('cmSpeed').value='1';
+for(const n of [1,5,12,40,88]){for(const [w,h] of [[1280,800],[390,844]]){els.get('cmCount').value=String(n);els.get('cmCount').oninput();assert.equal(els.get('cmCountValue').value,String(n));app.enter();
+  for(let f=0;f<60;f++){rendered.length=0;app.draw(g,w,h,130000+f*50,{p:.25,v:.5},2);const field=rendered.filter(p=>!p.center);assert.equal(field.length,n,`${n} at once`);assert.equal(new Set(field.map(p=>p.id)).size,n,'no repeats on screen');const center=rendered.find(p=>p.center);for(const p of field)assert(Math.hypot(p.x-center.x,p.y-center.y)-p.size>center.size,'clear of centre');}}}
+// with one at a time, each new constellation that emerges from the centre is the next in 1-88 order
+els.get('cmCount').value='1';els.get('cmCount').oninput();els.get('cmPeriod').value='1';app.enter();const seen=[];let t=140000;
+for(let f=0;f<1200&&seen.length<6;f++){rendered.length=0;app.draw(g,1280,800,t+=50,{p:.25,v:.5},2);const id=rendered.find(p=>!p.center).id;if(seen.at(-1)!==id)seen.push(id);}
+const order=D2=>D2;const allIds=[...els.get('cmPick').innerHTML.matchAll(/value="(\d+)"/g)].length;assert(seen.length>=4,'several constellations pulsed out in turn');
+const srcIds=JSON.parse((()=>{const s=fs.readFileSync('constellation-meditation.js','utf8');const i=s.indexOf('const DATA=')+11;let d=0,j=i;for(;j<s.length;j++){const c=s[j];if(c==='{'||c==='[')d++;else if(c==='}'||c===']'){d--;if(!d)break;}}return s.slice(i,j+1)})()).constellations.map(c=>c.id);
+for(let k=1;k<seen.length;k++)assert.equal(srcIds.indexOf(seen[k]),(srcIds.indexOf(seen[k-1])+1)%88,'next in 1-88 order');
+els.get('cmCount').value='88';els.get('cmCount').oninput();els.get('cmPeriod').value='';
+console.log('PASS: 1 to 88 constellations pulse out at once (1, 5, 12, 40, 88 at desktop and phone sizes); one-at-a-time follows 1-88 order.');}
