@@ -35,3 +35,9 @@ app.enter();els.get('cmSpeed').value='0';app.draw(g,1280,800,130000,{p:.25},1);
 const stillTime=app.state().visualTime;
 app.draw(g,1280,800,130050,{p:.25},1);assert.equal(app.state().visualTime,stillTime);
 console.log('PASS: 0x motion also freezes the ripple pulse clock.');
+
+{const arcs=[];const ringCtx=new Proxy(g,{get(o,k){if(k==='arc')return (x,y,r)=>arcs.push(r);return o[k]}});app.enter();
+els.get('cmRings').checked=true;arcs.length=0;app.draw(ringCtx,1280,800,120000,{p:.25,v:.5},2);const withRings=arcs.filter(r=>r>100).length;
+els.get('cmRings').checked=false;arcs.length=0;rendered.length=0;app.draw(ringCtx,1280,800,120016,{p:.25,v:.5},2);const without=arcs.filter(r=>r>100).length;
+assert(withRings>=24,'rings drawn when on');assert.equal(without,0,'no large circles when rings are off');assert.equal(rendered.filter(p=>!p.center).length,88);els.get('cmRings').checked=true;
+console.log('PASS: Rings toggle removes every circle ring while all 88 patterns keep moving.');}
