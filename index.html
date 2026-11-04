@@ -94,8 +94,19 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:
 .dock.side.right.away{transform:translateX(calc(100% + 24px))}
 .showTab.left{left:max(14px,env(safe-area-inset-left,0px));transform:none}.showTab.right{left:auto;right:max(14px,env(safe-area-inset-right,0px));transform:none}
 .top{transition:left .5s var(--ease),right .5s var(--ease)}@media (min-width:561px){body:has(.dock.side:not(.right):not(.away) .panel:not(.compact)) .top{left:min(390px,92vw)}body:has(.dock.side.right:not(.away) .panel:not(.compact)) .top{right:min(390px,92vw)}}
+.dock.float{left:0;top:0;right:auto;bottom:auto;padding:0;display:block;width:max-content;max-width:calc(100vw - 16px);transform:translate(var(--fx,8px),var(--fy,8px));transition:opacity .4s}
+.dock.float .panel{width:min(620px,calc(100vw - 16px));max-height:calc(100dvh - 16px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))}
+.dock.float .panel.compact{width:auto;max-width:calc(100vw - 16px)}
+.dock.float.away{transform:translate(var(--fx,8px),calc(var(--fy,8px) + 24px));opacity:0}
+.dock.float #dockUp,.dock.float #dockDown{display:none}
+.dock.float .handle{cursor:grab}
+.dock.moving,.dock.moving .panel{transition:none!important}
+.dock.moving .handle,.dock.moving .moveGrip{cursor:grabbing}
+.moveGrip{width:28px;height:44px;padding:0;flex:none;display:inline-grid;place-items:center;background:transparent!important;border:0;color:var(--muted);cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.moveGrip:hover,.moveGrip:focus-visible{color:var(--fg)}
+.moveGrip svg{width:12px;height:20px}
 .snapHint{position:fixed;pointer-events:none;z-index:4;border:1.5px solid rgba(255,255,255,.35);background:rgba(255,255,255,.07);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-radius:28px;opacity:0;transition:opacity .2s;top:8px;bottom:8px;width:min(380px,92vw)}
-.snapHint.on{opacity:1}.snapHint.left{left:8px}.snapHint.right{right:8px}.snapHint.bottom{left:8px;right:8px;width:auto;top:auto;height:28vh}
+.snapHint.on{opacity:1}.snapHint.float{display:none}.snapHint.left{left:8px}.snapHint.right{right:8px}.snapHint.bottom{left:8px;right:8px;width:auto;top:auto;height:28vh}
 .showTab{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:5;
   background:var(--glass);backdrop-filter:var(--material);-webkit-backdrop-filter:var(--material);border:.5px solid var(--line);padding:10px 20px;box-shadow:0 12px 40px rgba(0,0,0,.45)}
 .showTab:hover{background:var(--glass-strong)}
@@ -291,6 +302,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 <div class="dock" id="dock">
   <div class="panel" id="panel">
     <div class="mini" id="mini">
+      <button id="moveGrip" class="moveGrip" aria-label="Move controls. Drag anywhere, or use the arrow keys" title="Drag to move the controls anywhere"><svg viewBox="0 0 12 20" aria-hidden="true"><g fill="currentColor"><circle cx="3" cy="4" r="1.6"/><circle cx="9" cy="4" r="1.6"/><circle cx="3" cy="10" r="1.6"/><circle cx="9" cy="10" r="1.6"/><circle cx="3" cy="16" r="1.6"/><circle cx="9" cy="16" r="1.6"/></g></svg></button>
       <button class="play" id="miniPlay" aria-label="Play"></button>
       <select id="modeSel" aria-label="Visual"></select>
       <label class="ctl cmOnly" for="cmSpeed">Motion <input id="cmSpeed" type="range" min="0" max="3" step="0.05" value="0.5" aria-label="Constellation vortex speed"><output id="cmSpeedValue" for="cmSpeed">0.50×</output></label>
@@ -304,11 +316,11 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
       <button id="miniHide" class="icon" aria-label="Hide controls" title="Hide controls"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 8l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
       <button id="moreBtn" class="icon" aria-label="More controls" aria-expanded="false"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 6h14M3 14h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="7" cy="6" r="2.2" fill="#2c2c2e" stroke="currentColor" stroke-width="1.6"/><circle cx="13" cy="14" r="2.2" fill="#2c2c2e" stroke="currentColor" stroke-width="1.6"/></svg></button>
     </div>
-    <div class="handle" id="handle" title="Drag up or down to move the controls; drag to the left or right edge to snap them into a side panel">
+    <div class="handle" id="handle" title="Drag to float the controls anywhere; drop them on the left, right or bottom edge to dock them there">
       <span class="grip" aria-hidden="true"></span>
       <button id="dockUp" class="icon" aria-label="Move controls up"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 8l4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
       <button id="dockDown" class="icon" aria-label="Move controls down"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-      <span class="snap" role="group" aria-label="Where the controls sit"><button data-side="left" title="Snap the controls to a left side panel" aria-label="Snap to left">Left</button><button data-side="bottom" title="Dock the controls along the bottom" aria-label="Snap to bottom">Bottom</button><button data-side="right" title="Snap the controls to a right side panel" aria-label="Snap to right">Right</button></span>
+      <span class="snap" role="group" aria-label="Where the controls sit"><button data-side="left" title="Snap the controls to a left side panel" aria-label="Snap to left">Left</button><button data-side="bottom" title="Dock the controls along the bottom" aria-label="Snap to bottom">Bottom</button><button data-side="right" title="Snap the controls to a right side panel" aria-label="Snap to right">Right</button><button data-side="float" title="Let the controls float anywhere on screen" aria-label="Float">Float</button></span>
       <label class="ctl" for="dockFade">Fade<input id="dockFade" type="range" min="0.15" max="1" step="0.05" value="1"></label>
       <button id="autoFade" aria-pressed="true" title="Fade the controls while music plays and you are not using them">Auto-fade</button>
       <span class="spacer"></span>
@@ -675,7 +687,13 @@ try{Object.assign(DK,JSON.parse(localStorage.getItem('ef-dock')||'{}'));}catch(e
 let idleT,idle=false;
 function saveDock(){try{localStorage.setItem('ef-dock',JSON.stringify(DK));}catch(e){}}
 function maxY(){return Math.max(0,innerHeight-dock.offsetHeight-8);}
-function placeDock(){if(DK.side!=='bottom'){dock.style.bottom='';dock.style.setProperty('--dy','0px');return;}DK.y=Math.max(0,Math.min(maxY(),DK.y));dock.style.bottom=DK.y+'px';dock.style.setProperty('--dy',DK.y+'px');}
+const SAFE=8;
+let shown={x:SAFE,y:SAFE}; // where the floating panel actually sits; DK keeps the spot the person chose
+function clampFloat(){const w=dock.offsetWidth,h=dock.offsetHeight;
+  shown={x:Math.round(Math.max(SAFE,Math.min(innerWidth-w-SAFE,DK.fx??SAFE))),y:Math.round(Math.max(SAFE,Math.min(innerHeight-h-SAFE,DK.fy??SAFE)))};
+  dock.style.setProperty('--fx',shown.x+'px');dock.style.setProperty('--fy',shown.y+'px');}
+function placeDock(){if(DK.side==='float'){dock.style.bottom='';dock.style.setProperty('--dy','0px');clampFloat();return;}
+  if(DK.side!=='bottom'){dock.style.bottom='';dock.style.setProperty('--dy','0px');return;}DK.y=Math.max(0,Math.min(maxY(),DK.y));dock.style.bottom=DK.y+'px';dock.style.setProperty('--dy',DK.y+'px');}
 function applyFade(){panel.style.opacity=(idle&&DK.auto&&playing)?Math.min(DK.fade,.12):DK.fade;}
 function wake(){idle=false;applyFade();clearTimeout(idleT);idleT=setTimeout(()=>{idle=true;applyFade();},4000);}
 fadeEl.value=DK.fade;autoBtn.setAttribute('aria-pressed',DK.auto);
@@ -684,30 +702,47 @@ autoBtn.onclick=()=>{DK.auto=!DK.auto;autoBtn.setAttribute('aria-pressed',DK.aut
 document.getElementById('dockUp').onclick=()=>{DK.y+=Math.max(60,innerHeight*.15);placeDock();saveDock();};
 document.getElementById('dockDown').onclick=()=>{DK.y-=Math.max(60,innerHeight*.15);placeDock();saveDock();};
 const snapHint=document.getElementById('snapHint'),sideBtns=[...document.querySelectorAll('[data-side]')];
-function applySide(){const sd=DK.side==='left'||DK.side==='right'?DK.side:'bottom';DK.side=sd;
-  dock.classList.toggle('side',sd!=='bottom');dock.classList.toggle('right',sd==='right');
+function applySide(){const sd=['left','right','float'].includes(DK.side)?DK.side:'bottom';DK.side=sd;
+  dock.classList.toggle('float',sd==='float');dock.classList.toggle('side',sd==='left'||sd==='right');dock.classList.toggle('right',sd==='right');
   showTab.classList.toggle('left',sd==='left');showTab.classList.toggle('right',sd==='right');
   showTab.textContent='Controls';
   sideBtns.forEach(b=>b.setAttribute('aria-pressed',b.dataset.side===sd));placeDock();}
-sideBtns.forEach(b=>b.onclick=()=>{DK.side=b.dataset.side;applySide();saveDock();});
+sideBtns.forEach(b=>b.onclick=()=>{const was=DK.side,r=panel.getBoundingClientRect();DK.side=b.dataset.side;
+  if(DK.side==='float'&&was!=='float'){applySide();DK.fx=(innerWidth-dock.offsetWidth)/2;DK.fy=Math.min(r.top,innerHeight*.55);}
+  applySide();saveDock();if(typeof stPlaceRep==='function')stPlaceRep();});
 applySide();
 function hideDock(){dock.classList.add('away');showTab.hidden=false;try{showTab.focus({preventScroll:true});}catch(_){}}
 document.getElementById('dockHide').onclick=hideDock;document.getElementById('miniHide').onclick=hideDock;
 showTab.onclick=()=>{dock.classList.remove('away');showTab.hidden=true;wake();};
-handle.addEventListener('pointerdown',e=>{
-  if(e.target.closest('button,input,label'))return;
-  const y0=e.clientY,start=DK.y;let target=DK.side;handle.setPointerCapture(e.pointerId);handle.classList.add('dragging');dock.style.transition='none';
-  // drag toward the left or right edge to snap into a side panel; drag a side panel down to the bottom to dock it there again
-  let moved=false;
-  const mv=ev=>{const x=ev.clientX,y=ev.clientY;if(!moved&&Math.abs(y-y0)<8&&Math.abs(x-e.clientX)<8)return;moved=true;
-    target=x<innerWidth*.14?'left':x>innerWidth*.86?'right':(DK.side!=='bottom'&&y>innerHeight*.75)?'bottom':DK.side==='bottom'?'bottom':DK.side;
-    if(DK.side==='bottom'){DK.y=start-(y-y0);placeDock();}
-    const show=target!==DK.side;snapHint.className='snapHint '+target+(show?' on':'');};
-  const up=()=>{handle.removeEventListener('pointermove',mv);handle.removeEventListener('pointerup',up);handle.removeEventListener('pointercancel',up);
-    handle.classList.remove('dragging');dock.style.transition='';snapHint.className='snapHint';
-    if(target!==DK.side){DK.side=target;applySide();}saveDock();};
-  handle.addEventListener('pointermove',mv);handle.addEventListener('pointerup',up);handle.addEventListener('pointercancel',up);
-});
+// drag the handle or the grip to float the controls anywhere; drop them on an edge to dock them there
+const moveGrip=document.getElementById('moveGrip'),EDGE=28;
+function dropTarget(x,y){return x<EDGE?'left':x>innerWidth-EDGE?'right':y>innerHeight-EDGE?'bottom':'float';}
+function startMove(e,src){
+  if(e.button>0)return;if(src===handle&&e.target.closest('button,input,label,select'))return;
+  e.preventDefault();const x0=e.clientX,y0=e.clientY,from=DK.side,startY=DK.y;let moved=false,target=from,ox=0,oy=0;
+  src.setPointerCapture(e.pointerId);handle.classList.add('dragging');
+  const mv=ev=>{const x=ev.clientX,y=ev.clientY;
+    if(!moved){if(Math.hypot(x-x0,y-y0)<8)return;moved=true;dock.classList.add('moving');
+      const r=panel.getBoundingClientRect();ox=x0-r.left;oy=y0-r.top;
+      if(from!=='float'){DK.side='float';applySide();const w=dock.offsetWidth,h=dock.offsetHeight;ox=Math.min(ox,w-24);oy=Math.min(oy,h-24);}}
+    DK.fx=x-ox;DK.fy=y-oy;placeDock();
+    target=dropTarget(x,y);snapHint.className='snapHint '+target+(target!=='float'?' on':'');};
+  const up=()=>{src.removeEventListener('pointermove',mv);src.removeEventListener('pointerup',up);src.removeEventListener('pointercancel',up);
+    handle.classList.remove('dragging');snapHint.className='snapHint';
+    requestAnimationFrame(()=>dock.classList.remove('moving'));
+    if(!moved)return;
+    if(target!=='float'){DK.side=target;if(target==='bottom')DK.y=from==='bottom'?startY:0;applySide();}else{DK.fx=shown.x;DK.fy=shown.y;}
+    saveDock();if(typeof stPlaceRep==='function')stPlaceRep();};
+  src.addEventListener('pointermove',mv);src.addEventListener('pointerup',up);src.addEventListener('pointercancel',up);
+}
+handle.addEventListener('pointerdown',e=>startMove(e,handle));
+moveGrip.addEventListener('pointerdown',e=>startMove(e,moveGrip));
+moveGrip.addEventListener('click',e=>e.preventDefault());
+moveGrip.addEventListener('keydown',e=>{const d={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[e.key];if(!d)return;e.preventDefault();
+  if(DK.side!=='float'){const r=panel.getBoundingClientRect();DK.side='float';DK.fx=r.left;DK.fy=r.top;applySide();}
+  const step=e.shiftKey?80:20;DK.fx=shown.x+d[0]*step;DK.fy=shown.y+d[1]*step;placeDock();DK.fx=shown.x;DK.fy=shown.y;saveDock();if(typeof stPlaceRep==='function')stPlaceRep();});
+// keep a floating panel on screen when it opens, closes or the window changes size
+try{new ResizeObserver(()=>{if(DK.side==='float')placeDock();}).observe(panel);}catch(_){}
 addEventListener('resize',placeDock);
 let fadedTap=0;
 panel.addEventListener('pointerdown',()=>{if(parseFloat(getComputedStyle(panel).opacity)<.5)fadedTap=performance.now();},true);
@@ -2420,7 +2455,7 @@ stDateIn.onchange=()=>stPickDate(stDateIn.value);stDateMini.onchange=()=>stPickD
 stTimeIn.onchange=()=>stPickDate(stYmd(ST.sim));
 function stShowRep(on){stRep.hidden=!on;stRepBtn.setAttribute('aria-pressed',on);ST.repT=0;stPlaceRep();}
 function stPlaceRep(){ // keep the report in the space above the controls so it never covers them
-  if(stRep.hidden)return;const r=panel.getBoundingClientRect(),free=dock.classList.contains('side')||dock.classList.contains('away'),lim=free?innerHeight-16:r.top-12;
+  if(stRep.hidden)return;const r=panel.getBoundingClientRect(),free=dock.classList.contains('side')||dock.classList.contains('float')||dock.classList.contains('away'),lim=free?innerHeight-16:r.top-12;
   if(innerWidth<=560){stRep.style.bottom=(free?16:Math.max(16,innerHeight-r.top+12))+'px';stRep.style.maxHeight=Math.max(120,lim-96)+'px';}
   else{stRep.style.bottom='';stRep.style.maxHeight=Math.max(140,lim-stRep.getBoundingClientRect().top)+'px';}}
 addEventListener('resize',stPlaceRep);
