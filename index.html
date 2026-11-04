@@ -277,12 +277,17 @@ body:has(.panel:not(.compact)) .stRep{top:calc(170px + env(safe-area-inset-top,0
 @media (pointer:coarse){select,input[type=date],input[type=time],input[type=text]{font-size:16px!important}}
 button,select,input,label{touch-action:manipulation}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+.invertLook{position:fixed;inset:0;pointer-events:none;-webkit-backdrop-filter:grayscale(1) invert(1);backdrop-filter:grayscale(1) invert(1)}
+.invertLook[hidden]{display:none}
+/* light text that floats on the visuals turns dark so it stays readable on the inverted picture */
+body.inverted .top,body.inverted .breath,body.inverted .meters,body.inverted #stInfo{filter:invert(1)}
 @media (prefers-reduced-motion:reduce){.meter i,.breath,.panel,.dock,button{transition:none}.recDot{animation:none}}
 </style>
 
 <canvas id="glc" aria-hidden="true" hidden></canvas>
 <canvas id="c" aria-label="Somatic visual responding to sound"></canvas>
 <canvas id="kc" aria-hidden="true" hidden></canvas>
+<div class="invertLook" id="invertLook" aria-hidden="true" hidden></div>
 
 <div class="top">
   <div class="brand">
@@ -387,6 +392,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
       <label class="ctl" for="bpm"><span>Breath <span id="bpmv">6</span>/min</span><input id="bpm" type="range" min="3" max="12" step="0.5" value="6"></label>
       <span class="spacer"></span>
       <button id="guide" aria-pressed="false">Breath cue</button>
+      <button id="invertBtn" aria-pressed="false" title="Show every visual as an inverted black-and-white image, like an X-ray">Inverted B&amp;W</button>
       <button id="full">Fullscreen</button>
     </div>
     <div class="row" id="cymRow" hidden>
@@ -679,6 +685,11 @@ toneSel.onchange=e=>setTone(e.target.value);
 toneVol.oninput=e=>{if(tone)tone.out.gain.setTargetAtTime(+e.target.value,ctx.currentTime,.1);};
 const guideBtn=document.getElementById('guide'), breathEl=document.getElementById('breath');
 guideBtn.onclick=()=>{guide=!guide;guideBtn.setAttribute('aria-pressed',guide);breathEl.classList.toggle('on',guide);};
+/* inverted black and white: an X-ray-style look over every visual, kept between visits and baked into recordings */
+const invertBtn=document.getElementById('invertBtn'),invertLook=document.getElementById('invertLook');let inverted=false;
+function setInverted(on){inverted=on;invertLook.hidden=!on;invertBtn.setAttribute('aria-pressed',String(on));document.body.classList.toggle('inverted',on);try{localStorage.setItem('ef-invert',on?'1':'0');}catch(_){}}
+invertBtn.onclick=()=>setInverted(!inverted);
+try{setInverted(localStorage.getItem('ef-invert')==='1');}catch(_){setInverted(false);}
 document.getElementById('full').onclick=()=>{const d=document.documentElement;(document.fullscreenElement?document.exitFullscreen():d.requestFullscreen?.())?.catch?.(()=>{});};
 // dock fades when idle
 /* control dock: drag or step it up and down, set how faded it is, auto-fade while playing, or hide it */
@@ -1970,11 +1981,15 @@ function recFrame(){ // crop the live screen to the chosen shape and paint it in
   const sx=(W-sw)/2,sy=(H-sh)/2;
   x.fillStyle='#000';x.fillRect(0,0,tw,th);
   if(!kc.hidden&&kc.width){const qx=kc.width/W,qy=kc.height/H;x.drawImage(kc,sx*qx,sy*qy,sw*qx,sh*qy,0,0,tw,th);
-    if(REC.track&&REC.track.requestFrame)REC.track.requestFrame();return;}
+    recLook(x,tw,th);if(REC.track&&REC.track.requestFrame)REC.track.requestFrame();return;}
   if(!glc.hidden&&glc.width){const kx=glc.width/W,ky=glc.height/H;x.drawImage(glc,sx*kx,sy*ky,sw*kx,sh*ky,0,0,tw,th);}
   const kx=cv.width/W,ky=cv.height/H;x.drawImage(cv,sx*kx,sy*ky,sw*kx,sh*ky,0,0,tw,th);
+  recLook(x,tw,th);
   if(REC.track&&REC.track.requestFrame)REC.track.requestFrame(); // hand every drawn frame to the recorder
 }
+function recLook(x,tw,th){if(!inverted)return; // grey out the colour, then flip light and dark
+  x.save();x.setTransform(1,0,0,1,0,0);x.globalAlpha=1;x.globalCompositeOperation='saturation';x.fillStyle='#808080';x.fillRect(0,0,tw,th);
+  x.globalCompositeOperation='difference';x.fillStyle='#fff';x.fillRect(0,0,tw,th);x.restore();}
 async function recStart(){
   const [mime,ext]=recMime();
   if(!mime||!HTMLCanvasElement.prototype.captureStream){now.textContent='This browser cannot record video. Try Chrome or Safari on a computer.';return;}
